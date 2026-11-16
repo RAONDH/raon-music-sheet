@@ -130,3 +130,24 @@ exports.setTeamLibrary = async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 }
+
+// GET /api/admin/me/library → 내(관리자) 개인 공간 곡 수와 공용 여부
+exports.myLibrary = async (req, res) => {
+  try {
+    const songs = await Song.countDocuments({ user: req.user._id, team: null })
+    res.json({ songs, sharedLibrary: !!req.user.sharedLibrary })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// PUT /api/admin/me/library  { shared: boolean } — 내 개인 공간 곡 정보를 공용 곡 목록으로 열기·닫기
+exports.setMyLibrary = async (req, res) => {
+  try {
+    if (typeof req.body?.shared !== 'boolean') return fail(res, 400, '잘못된 요청입니다')
+    await User.updateOne({ _id: req.user._id }, { sharedLibrary: req.body.shared })
+    res.json({ sharedLibrary: req.body.shared })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}

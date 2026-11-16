@@ -16,3 +16,9 @@ export function listTeamsForAdmin() {
 export function setTeamLibrary(id, shared) {
   return apiFetch(`/admin/teams/${id}/library`, { method: 'PUT', body: JSON.stringify({ shared }) })
 }
+export function getMyLibrary() {
+  return apiFetch('/admin/me/library')
+}
+export function setMyLibrary(shared) {
+  return apiFetch('/admin/me/library', { method: 'PUT', body: JSON.stringify({ shared }) })
+}

@@ -33,6 +33,8 @@ const userSchema = new mongoose.Schema(
     // 이 시각 전에 받은 로그인은 더 이상 쓸 수 없다 (관리자가 비밀번호를 초기화하거나 사용을 멈췄을 때)
     sessionsRevokedAt: { type: Date, default: null },
     lastLoginAt: { type: Date, default: null },
+    // 관리자가 켜면 이 사람 개인 공간의 곡 정보(악보 빼고)를 가입한 모든 사람이 공용 곡 목록에서 본다
+    sharedLibrary: { type: Boolean, default: false },
     // 임시 비밀번호의 유효 기한 (지나면 그 임시 비밀번호로는 로그인할 수 없다)
     tempPasswordExpiresAt: {
       type: Date,

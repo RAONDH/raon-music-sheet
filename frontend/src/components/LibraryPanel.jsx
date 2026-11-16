@@ -25,8 +25,10 @@ export default function LibraryPanel({ songs, workspace, workspaceLabel, onCopie
   const have = useMemo(() => new Set(songs.map(sameKey)), [songs])
   const results = useMemo(() => filterSongs(lib?.songs || [], search), [lib, search])
 
-  // 공용 곡이 없거나, 지금 보고 있는 공간이 바로 그 공용 팀이면 보여 주지 않는다
-  if (!lib?.songs?.length || lib.teams.some((t) => t._id === workspace)) return null
+  // 공용 곡이 없거나, 지금 보고 있는 공간이 바로 공용 곡의 출처(공용 팀, 또는 공용으로 연 내 개인 공간)면 보여 주지 않는다
+  if (!lib?.songs?.length) return null
+  if (lib.teams.some((t) => t._id === workspace)) return null
+  if (!workspace && lib.ownPersonal && !lib.teams.length) return null
 
   const visible = results.slice(0, shown)
   const pickable = results.filter((s) => !have.has(sameKey(s)))
@@ -50,7 +52,7 @@ export default function LibraryPanel({ songs, workspace, workspaceLabel, onCopie
         <div>
           <h2>📚 공용 곡 목록</h2>
           <p className="muted-dark">
-            {lib.teams.map((t) => t.name).join(', ')}의 곡 {lib.songs.length.toLocaleString()}곡 정보(제목·Key·BPM·주제 등)를 내 곡으로 가져올 수 있습니다.
+            누구나 찾아볼 수 있는 곡 {lib.songs.length.toLocaleString()}곡입니다. 곡 정보(제목·Key·BPM·주제 등)를 내 곡으로 가져올 수 있습니다.
             <b> 악보는 함께 오지 않습니다.</b>
           </p>
         </div>

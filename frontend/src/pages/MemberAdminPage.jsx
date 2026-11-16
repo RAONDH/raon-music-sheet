@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import LoginForm from '../components/LoginForm'
 import { getOperatorInfo } from '../api/copyright'
-import { listMembers, resetMemberPassword, setMemberSuspended, listTeamsForAdmin, setTeamLibrary } from '../api/admin'
+import { listMembers, resetMemberPassword, setMemberSuspended, listTeamsForAdmin, setTeamLibrary, getMyLibrary, setMyLibrary } from '../api/admin'
 
 const when = (d) => (d ? new Date(d).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '')
 
@@ -156,10 +156,23 @@ function MemberDetail({ user: u, onChanged }) {
 // 공용 곡 목록으로 쓸 팀: 켜면 그 팀 곡 정보(악보 빼고)를 가입한 모든 사람이 보고 가져갈 수 있다
 function LibraryTeams() {
   const [teams, setTeams] = useState(null)
+  const [mine, setMine] = useState(null) // 내 개인 공간 곡
   const [msg, setMsg] = useState('')
   const load = useCallback(() => {
     listTeamsForAdmin().then(setTeams).catch((err) => setMsg(err.message))
+    getMyLibrary().then(setMine).catch(() => {})
   }, [])
+
+  async function toggleMine() {
+    const on = !mine.sharedLibrary
+    if (on && !window.confirm(`내 개인 공간의 곡 ${mine.songs}곡 정보(제목·Key·BPM·주제 등)를 가입한 모든 사람이 찾아보고 가져갈 수 있게 할까요?\n악보 파일·MR·메모는 나누지 않습니다.`)) return
+    setMsg('')
+    try {
+      await setMyLibrary(on)
+      setMsg(on ? '내 개인 곡을 공용 곡 목록으로 열었습니다. 이제 모든 회원이 곡 목록 탭에서 찾아볼 수 있습니다.' : '내 개인 곡을 공용 곡 목록에서 뺐습니다')
+      load()
+    } catch (err) { setMsg(err.message) }
+  }
   useEffect(() => { load() }, [load])
 
   async function toggle(t) {
@@ -177,10 +190,23 @@ function LibraryTeams() {
     <div className="card panel">
       <h2>📚 공용 곡 목록</h2>
       <p className="muted-dark">
-        켜 둔 팀의 곡 <b>정보</b>(제목·아티스트·Key·BPM·주제·유튜브 등)를 가입한 모든 사람이 곡 목록 위 <b>공용 곡 목록</b>에서 보고 자기 곡으로 가져갈 수 있습니다.
+        켜 둔 곡(내 개인 공간 또는 팀)의 <b>정보</b>(제목·아티스트·Key·BPM·주제·유튜브 등)를 가입한 모든 사람이 곡 목록 위 <b>공용 곡 목록</b>에서 보고 자기 곡으로 가져갈 수 있습니다.
         <b> 악보 파일·MR·팀 메모는 나누지 않으며</b>, 악보는 지금처럼 그 팀원만 봅니다. 가져간 곡은 가져간 사람의 곡이 되므로, 나중에 끄더라도 이미 가져간 곡은 남습니다.
       </p>
-      {!teams ? <p className="muted">불러오는 중…</p> : teams.length === 0 ? <p className="muted">팀이 없습니다</p> : (
+      {mine && (
+        <ul className="copyright-list">
+          <li className="library-team-row">
+            <span>
+              {mine.sharedLibrary && <span className="copyright-status st-resolved">공용</span>} <b>내 개인 공간의 곡</b>
+              <small className="muted-dark"> · 곡 {mine.songs.toLocaleString()}곡</small>
+            </span>
+            <button type="button" className={mine.sharedLibrary ? 'secondary' : ''} onClick={toggleMine}>
+              {mine.sharedLibrary ? '공용 끄기' : '공용으로 열기'}
+            </button>
+          </li>
+        </ul>
+      )}
+      {!teams ? <p className="muted">불러오는 중…</p> : teams.length === 0 ? null : (
         <ul className="copyright-list">
           {teams.map((t) => (
             <li key={t._id} className="library-team-row">

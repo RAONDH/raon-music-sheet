@@ -11,5 +11,7 @@ router.post('/users/:id/reset-password', c.resetPassword)
 router.put('/users/:id/suspended', c.setSuspended)
 router.get('/teams', c.listTeams)
 router.put('/teams/:id/library', c.setTeamLibrary)
+router.get('/me/library', c.myLibrary)
+router.put('/me/library', c.setMyLibrary)
 
 module.exports = router
