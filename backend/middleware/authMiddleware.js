@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { ensureUserCookie } = require("../utils/sheetAccess");
+const sessionUsable = require("../utils/session");
 
 // 로그인이 만료됐거나 더 이상 쓸 수 없는 토큰 → 화면이 알아서 로그아웃하고 로그인 화면으로 보낸다
 const expired = (res) =>
@@ -24,6 +25,7 @@ exports.protect = async (req, res, next) => {
   try {
     const user = await User.findById(decoded.id).select("-password");
     if (!user) return expired(res); // 지워진 계정
+    if (!sessionUsable(user, decoded)) return expired(res); // 사용 중지 또는 관리자가 로그인을 끊음
 
     req.user = user;
 

@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema(
         ref: 'Song',
       },
     ],
+    // 관리자가 사용을 멈춘 계정 → 로그인할 수 없고, 쓰던 기기도 로그아웃된다
+    suspended: { type: Boolean, default: false },
+    // 이 시각 전에 받은 로그인은 더 이상 쓸 수 없다 (관리자가 비밀번호를 초기화하거나 사용을 멈췄을 때)
+    sessionsRevokedAt: { type: Date, default: null },
+    lastLoginAt: { type: Date, default: null },
     // 임시 비밀번호의 유효 기한 (지나면 그 임시 비밀번호로는 로그인할 수 없다)
     tempPasswordExpiresAt: {
       type: Date,

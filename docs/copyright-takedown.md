@@ -9,7 +9,7 @@ Vercel 프로젝트 → Settings → Environment Variables에 다음 값을 넣�
 
 | 이름 | 값 |
 | --- | --- |
-| `ADMIN_EMAILS` | 신고를 처리할 계정 이메일. 여러 명이면 쉼표로 구분 (예: `a@church.org,b@church.org`) |
+| `ADMIN_EMAILS` | 관리자 계정 이메일 (저작권 신고 처리 + `/admin/members` 회원 관리). 여러 명이면 쉼표로 구분 (예: `a@church.org,b@church.org`) |
 
 - 이 계정은 **먼저 앱에 가입해 둔 뒤** `ADMIN_EMAILS`에 넣습니다. 앱은 가입할 때 이메일을 확인하지 않으므로, `ADMIN_EMAILS`에 든 이메일로는 새로 가입할 수 없게 막아 두었습니다(남이 먼저 그 이메일로 가입해 운영자가 되는 것을 막기 위해). 넣기 전에 그 이메일 계정이 본인 것인지 확인해 주세요.
 - 운영자가 로그인하면 앱 위쪽에 **©️ 신고** 버튼(처리할 신고 수)이 보이고, `/copyright/admin`에서 처리합니다.

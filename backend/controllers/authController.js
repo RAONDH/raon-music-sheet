@@ -61,6 +61,7 @@ exports.signup = async (req, res) => {
     const user = await User.create({
       email,
       password: hashedPassword,
+      lastLoginAt: new Date(),
     })
 
     ensureUserCookie(req, res, user) // 악보 파일(<img>)용 쿠키
@@ -133,11 +134,16 @@ exports.login = async (req, res) => {
 
     await refundAttempt(loginKey)
 
+    if (user.suspended) {
+      return res.status(403).json({ message: '사용이 중지된 계정입니다. 관리자에게 문의해 주세요' })
+    }
+
     if (user.mustChangePassword && user.tempPasswordExpiresAt && user.tempPasswordExpiresAt < new Date()) {
       return res.status(400).json({ message: '임시 비밀번호가 만료되었습니다. 팀장에게 다시 초기화를 요청해 주세요' })
     }
 
     if (!user.mustChangePassword) ensureUserCookie(req, res, user) // 악보 파일(<img>)용 쿠키
+    await User.updateOne({ _id: user._id }, { lastLoginAt: new Date() })
     res.json({
       _id: user._id,
       email: user.email,

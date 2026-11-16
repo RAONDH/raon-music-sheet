@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import PublicSetlistView from './pages/PublicSetlistView'
 import CopyrightRequestPage from './pages/CopyrightRequestPage'
 import CopyrightAdminPage from './pages/CopyrightAdminPage'
+import MemberAdminPage from './pages/MemberAdminPage'
 import { useAuth } from './context/useAuth'
 
 function AppRoutes() {
@@ -15,6 +16,7 @@ function AppRoutes() {
       <Route path="/share/:token" element={<PublicSetlistView />} />
       <Route path="/copyright" element={<CopyrightRequestPage />} />
       <Route path="/copyright/admin" element={<div className="app-shell"><CopyrightAdminPage /></div>} />
+      <Route path="/admin/members" element={<div className="app-shell"><MemberAdminPage /></div>} />
       <Route path="*" element={
         <div className="app-shell">
           {isAuthenticated ? <Dashboard /> : <LoginForm />}

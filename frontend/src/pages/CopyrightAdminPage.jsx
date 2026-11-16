@@ -76,7 +76,7 @@ export default function CopyrightAdminPage() {
           </ul>
         )}
       </div>
-      <p className="copyright-back"><Link to="/">앱으로 돌아가기</Link></p>
+      <p className="copyright-back"><Link to="/admin/members">회원 관리</Link> · <Link to="/">앱으로 돌아가기</Link></p>
     </div>
   )
 }

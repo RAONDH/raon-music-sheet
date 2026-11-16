@@ -616,3 +616,12 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .sheet-quick-row button { white-space: nowrap; }
 .sheet-quick-row button:disabled, .sheet-quick-row button:disabled:hover { background: var(--brand); color: #fff; opacity: 0.4; }
 .sheet-quick-tip { margin: 0; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+
+/* 관리자 회원 관리 */
+.member-count { margin: 8px 0 0; font-size: 13px; }
+.member-temp { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--gold-soft); color: var(--gold-ink); }
+.member-temp p { margin: 4px 0; }
+.member-temp-pw { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.member-temp-pw code { font-size: 18px; letter-spacing: 0.03em; padding: 4px 8px; border-radius: 6px; background: var(--surface); color: var(--ink); user-select: all; }
+.member-temp-pw button { font-size: 13px; padding: 4px 10px; }
+.copyright-actions .danger-text { color: var(--danger); }

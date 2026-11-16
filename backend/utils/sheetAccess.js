@@ -6,6 +6,7 @@ const SheetFile = require('../models/SheetFile')
 const User = require('../models/User')
 const Team = require('../models/Team')
 const optionalUser = require('./optionalUser')
+const sessionUsable = require('./session')
 const { accessFilter } = require('./access')
 const { isOperator } = require('./operator')
 
@@ -44,7 +45,7 @@ function verify(value) {
 function ensureUserCookie(req, res, user) {
   if (!user || res.headersSent) return
   const cur = verify(readCookies(req)[USER_COOKIE])
-  if (cur && cur.id === String(user._id) && cur.exp - Date.now() / 1000 > RENEW_BEFORE_S) return
+  if (cur && cur.id === String(user._id) && sessionUsable(user, cur) && cur.exp - Date.now() / 1000 > RENEW_BEFORE_S) return
   const value = jwt.sign({ id: String(user._id) }, process.env.JWT_SECRET, { audience: AUD, expiresIn: '30d' })
   res.cookie(USER_COOKIE, value, cookieOptions(req))
 }
@@ -83,7 +84,7 @@ async function viewerOf(req) {
     const c = verify(cookies[USER_COOKIE])
     if (c?.id) {
       user = await User.findById(c.id).select('-password')
-      if (user?.mustChangePassword) user = null
+      if (user?.mustChangePassword || !sessionUsable(user, c)) user = null
     }
   }
   return { user, grants: grantsOf(verify(cookies[SHARE_COOKIE])) }

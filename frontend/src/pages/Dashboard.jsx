@@ -232,6 +232,9 @@ export default function Dashboard() {
           <button className="secondary" onClick={() => { setShowPwModal(true); setPwMsg('') }}>비밀번호 변경</button>
           <InstallAppButton />
           {operatorInfo?.operator && (
+            <button className="secondary" onClick={() => { window.location.href = '/admin/members' }} title="가입한 회원 관리 (관리자)">👥 회원</button>
+          )}
+          {operatorInfo?.operator && (
             <button className="secondary" onClick={() => { window.location.href = '/copyright/admin' }} title="저작권 신고 처리 (운영자)">
               ©️ 신고{operatorInfo.open > 0 && <b className="copyright-badge">{operatorInfo.open}</b>}
             </button>
