@@ -20,13 +20,16 @@ export function sortSongs(songs, by) {
   })
 }
 
+// 띄어쓰기·대소문자를 무시하고 비교한다 ('물위를' = '물 위를', 'f.i.a' = 'F.I.A')
+const searchable = (v) => String(v ?? '').toLowerCase().replace(/\s+/g, '')
+
 // 제목·아티스트·코드·주제 태그·찬송가 번호·성경구절·작사·작곡 중 하나라도 검색어를 포함하면 보여 준다
 export function filterSongs(songs, search) {
-  const q = search.trim().toLowerCase()
+  const q = searchable(search)
   if (!q) return songs
   return songs.filter((s) =>
     [s.title, s.artist, s.key, s.hymnNumber, s.scripture, s.lyricist, s.composer, ...(s.themes || [])]
-      .some((v) => v?.toLowerCase().includes(q)))
+      .some((v) => v != null && searchable(v).includes(q)))
 }
 
 // Key별 곡 수 → [['C', 3], ['D', 5], ..., ['none', 2]] (Key 순서대로, Key 없는 곡은 맨 뒤 'none')
