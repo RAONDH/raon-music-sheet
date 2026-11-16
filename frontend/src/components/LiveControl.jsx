@@ -7,7 +7,8 @@ const POLL_MS = 3000
 // - 인도 권한(팀장·인도 배정자·개인 콘티 주인)이 있으면 '진행 시작' 후 곡을 넘기면 모든 공유 화면이 따라온다
 // - 권한이 없으면 지금 누가 몇 번 곡을 진행 중인지만 보여 준다
 // onStatus({ online, live }) — 준비 점검에 연결 상태를 알려 준다
-export default function LiveControl({ setlist, songs, onStatus }) {
+// shareToken / onCreateShare — '악보 화면 열기'(공유 화면을 악보 보기로 연다). 링크가 없으면 만들어서 연다
+export default function LiveControl({ setlist, songs, onStatus, shareToken, onCreateShare }) {
   const [live, setLive] = useState(null)
   const [conn, setConn] = useState('ok') // ok | lost
   const [msg, setMsg] = useState('')
@@ -72,6 +73,21 @@ export default function LiveControl({ setlist, songs, onStatus }) {
     }
   }
 
+  // 이 상자는 넘기기 리모컨이라 악보는 공유 화면에서 본다 → 새 탭으로 악보 보기를 연다
+  async function openSheets() {
+    setMsg('')
+    let token = shareToken
+    // 링크를 만드는 동안 기다리면 팝업 차단에 걸리므로 탭부터 연다
+    const tab = window.open('', '_blank')
+    if (!token) {
+      try { token = await onCreateShare?.() } catch (err) { setMsg(err.message || '공유 링크를 만들지 못했습니다') }
+    }
+    if (!token) { tab?.close(); return }
+    const url = `/share/${token}?view=sheet`
+    if (tab) tab.location.href = url
+    else window.location.href = url
+  }
+
   async function stop() {
     try { apply(await releaseLive(id)) } catch (err) { setMsg(err.message) }
   }
@@ -116,6 +132,7 @@ export default function LiveControl({ setlist, songs, onStatus }) {
           </button>
         )}
         {presenting && <button type="button" className="secondary" onClick={stop}>진행 끝내기</button>}
+        <button type="button" className="secondary" onClick={openSheets} title="공유 화면을 악보 보기로 새 탭에 엽니다">📖 악보 화면 열기</button>
         <span className="muted live-who">
           진행 권한: {setlist.team ? `팀장${leadNames ? `, 인도 배정 ${leadNames}` : ''} (팀원 배정에서 ‘인도’로 정하면 권한이 생깁니다)` : '나'}
         </span>

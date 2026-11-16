@@ -424,13 +424,18 @@ export default function SetlistDetail({
     } catch (err) { setError(err.message) }
   }
 
+  // 공유 링크를 만들고(이미 있으면 그대로) 토큰을 돌려준다
+  async function createShareToken() {
+    const { shareToken: token } = await onShare(setlist._id)
+    setShareLink(`${window.location.origin}/share/${token}`)
+    setShareToken(token)
+    return token
+  }
+
   async function handleShare() {
     if (!onShare) return
     try {
-      const { shareToken: token } = await onShare(setlist._id)
-      const link = `${window.location.origin}/share/${token}`
-      setShareLink(link)
-      setShareToken(token)
+      await createShareToken()
     } catch (err) {
       setError(err.message || '링크 생성 실패')
     }
@@ -766,7 +771,8 @@ export default function SetlistDetail({
       )}
 
       {activeShareToken && localSongs.length > 0 && (
-        <LiveControl setlist={setlist} songs={displaySongs} onStatus={handleLiveStatus} />
+        <LiveControl setlist={setlist} songs={displaySongs} onStatus={handleLiveStatus}
+          shareToken={activeShareToken} onCreateShare={onShare ? createShareToken : undefined} />
       )}
 
       <div className="section-block">
