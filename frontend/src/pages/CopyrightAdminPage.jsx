@@ -53,6 +53,9 @@ export default function CopyrightAdminPage() {
   return (
     <div className="dashboard copyright-admin">
       <div className="card panel">
+        <div className="admin-head">
+          <Link to="/" className="admin-back">← 앱으로 돌아가기</Link>
+        </div>
         <h2>©️ 저작권 신고 처리</h2>
         <p className="muted-dark">악보 파일은 지우지 않고 <b>차단</b>만 합니다(앱에서 보이지 않음). 신고가 잘못됐으면 차단을 풀면 그대로 돌아옵니다. 처리 결과는 신고한 분의 이메일로 직접 알려 주세요.</p>
         <div className="key-chips" role="group" aria-label="상태로 거르기">

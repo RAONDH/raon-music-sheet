@@ -45,6 +45,9 @@ export default function MemberAdminPage() {
   return (
     <div className="dashboard copyright-admin">
       <div className="card panel">
+        <div className="admin-head">
+          <Link to="/" className="admin-back">← 앱으로 돌아가기</Link>
+        </div>
         <h2>👥 회원 관리</h2>
         <p className="muted-dark">
           가입한 회원을 보고, 비밀번호를 잊은 회원에게 <b>임시 비밀번호</b>를 만들어 주거나 계정 <b>사용을 멈출</b> 수 있습니다.
