@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../context/useAuth'
+import LibraryPanel from '../components/LibraryPanel'
 import { getSongs, createSong, deleteSong, updateSong, setFavorite, renameTheme } from '../api/songs'
 import {
   getSetlists,
@@ -337,6 +338,7 @@ export default function Dashboard() {
         <>
           {tab === 0 && (
             <>
+              <LibraryPanel songs={songs} workspace={workspace || ''} workspaceLabel={currentTeam ? currentTeam.name : '내 개인 공간'} onCopied={loadData} />
               <SongForm onCreate={handleCreateSong} songs={songs} team={workspace || null} />
               <SongList
                 songs={songs}

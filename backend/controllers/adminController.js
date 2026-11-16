@@ -102,3 +102,31 @@ exports.setSuspended = async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 }
+
+// GET /api/admin/teams → 모든 팀 (공용 곡 목록으로 쓸 팀 고르기)
+exports.listTeams = async (req, res) => {
+  try {
+    const teams = await Team.find({}, 'name owner members sharedLibrary').populate('owner', 'email').sort({ createdAt: 1 }).lean()
+    const counts = new Map((await Song.aggregate([{ $match: { team: { $in: teams.map((t) => t._id) } } }, { $group: { _id: '$team', n: { $sum: 1 } } }]))
+      .map((r) => [String(r._id), r.n]))
+    res.json(teams.map((t) => ({
+      _id: t._id, name: t.name, owner: t.owner?.email || '', members: (t.members || []).length,
+      songs: counts.get(String(t._id)) || 0, sharedLibrary: !!t.sharedLibrary,
+    })))
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// PUT /api/admin/teams/:id/library  { shared: boolean } — 이 팀 곡 정보를 공용 곡 목록으로 열기·닫기
+exports.setTeamLibrary = async (req, res) => {
+  try {
+    if (typeof req.body?.shared !== 'boolean') return fail(res, 400, '잘못된 요청입니다')
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return fail(res, 400, '잘못된 요청입니다')
+    const team = await Team.findByIdAndUpdate(req.params.id, { sharedLibrary: req.body.shared }, { new: true })
+    if (!team) return fail(res, 404, '팀을 찾을 수 없습니다')
+    res.json({ _id: team._id, sharedLibrary: team.sharedLibrary })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}

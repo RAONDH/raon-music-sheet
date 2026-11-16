@@ -10,3 +10,9 @@ export function resetMemberPassword(id) {
 export function setMemberSuspended(id, suspended) {
   return apiFetch(`/admin/users/${id}/suspended`, { method: 'PUT', body: JSON.stringify({ suspended }) })
 }
+export function listTeamsForAdmin() {
+  return apiFetch('/admin/teams')
+}
+export function setTeamLibrary(id, shared) {
+  return apiFetch(`/admin/teams/${id}/library`, { method: 'PUT', body: JSON.stringify({ shared }) })
+}

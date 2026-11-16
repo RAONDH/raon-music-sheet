@@ -11,6 +11,7 @@ const teamExtrasRoutes = require('./routes/teamExtrasRoutes')
 const annotationRoutes = require('./routes/annotationRoutes')
 const copyrightRoutes = require('./routes/copyrightRoutes')
 const adminRoutes = require('./routes/adminRoutes')
+const libraryRoutes = require('./routes/libraryRoutes')
 
 const app = express()
 
@@ -80,6 +81,7 @@ app.use('/api/team-extras', teamExtrasRoutes)
 app.use('/api/annotations', annotationRoutes)
 app.use('/api/copyright', copyrightRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/library', libraryRoutes)
 
 app.get('/', (req, res) => {
   res.send('RAON music sheet API running')

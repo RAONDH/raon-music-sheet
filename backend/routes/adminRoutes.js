@@ -9,5 +9,7 @@ router.use(protect, requireOperator)
 router.get('/users', c.listUsers)
 router.post('/users/:id/reset-password', c.resetPassword)
 router.put('/users/:id/suspended', c.setSuspended)
+router.get('/teams', c.listTeams)
+router.put('/teams/:id/library', c.setTeamLibrary)
 
 module.exports = router

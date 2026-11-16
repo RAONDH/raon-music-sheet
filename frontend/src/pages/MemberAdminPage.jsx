@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import LoginForm from '../components/LoginForm'
 import { getOperatorInfo } from '../api/copyright'
-import { listMembers, resetMemberPassword, setMemberSuspended } from '../api/admin'
+import { listMembers, resetMemberPassword, setMemberSuspended, listTeamsForAdmin, setTeamLibrary } from '../api/admin'
 
 const when = (d) => (d ? new Date(d).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '')
 
@@ -79,6 +79,7 @@ export default function MemberAdminPage() {
           </ul>
         )}
       </div>
+      <LibraryTeams />
       <p className="copyright-back"><Link to="/copyright/admin">저작권 신고 처리</Link> · <Link to="/">앱으로 돌아가기</Link></p>
     </div>
   )
@@ -146,6 +147,53 @@ function MemberDetail({ user: u, onChanged }) {
           <p className="member-temp-pw"><code>{temp.tempPassword}</code> <button type="button" className="secondary" onClick={copy}>복사</button></p>
           <p className="muted-dark">{when(temp.expiresAt)}까지 쓸 수 있고, 이 비밀번호로 로그인하면 새 비밀번호로 바꾸라는 안내가 나옵니다.</p>
         </div>
+      )}
+      {msg && <p className="share-pin-msg">{msg}</p>}
+    </div>
+  )
+}
+
+// 공용 곡 목록으로 쓸 팀: 켜면 그 팀 곡 정보(악보 빼고)를 가입한 모든 사람이 보고 가져갈 수 있다
+function LibraryTeams() {
+  const [teams, setTeams] = useState(null)
+  const [msg, setMsg] = useState('')
+  const load = useCallback(() => {
+    listTeamsForAdmin().then(setTeams).catch((err) => setMsg(err.message))
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  async function toggle(t) {
+    const on = !t.sharedLibrary
+    if (on && !window.confirm(`'${t.name}' 팀의 곡 ${t.songs}곡 정보(제목·Key·BPM·주제 등)를 가입한 모든 사람이 보고 가져갈 수 있게 할까요?\n악보 파일·MR·팀 메모는 나누지 않습니다.`)) return
+    setMsg('')
+    try {
+      await setTeamLibrary(t._id, on)
+      setMsg(on ? `'${t.name}' 팀 곡을 공용 곡 목록으로 열었습니다` : `'${t.name}' 팀 곡을 공용 곡 목록에서 뺐습니다`)
+      load()
+    } catch (err) { setMsg(err.message) }
+  }
+
+  return (
+    <div className="card panel">
+      <h2>📚 공용 곡 목록</h2>
+      <p className="muted-dark">
+        켜 둔 팀의 곡 <b>정보</b>(제목·아티스트·Key·BPM·주제·유튜브 등)를 가입한 모든 사람이 곡 목록 위 <b>공용 곡 목록</b>에서 보고 자기 곡으로 가져갈 수 있습니다.
+        <b> 악보 파일·MR·팀 메모는 나누지 않으며</b>, 악보는 지금처럼 그 팀원만 봅니다. 가져간 곡은 가져간 사람의 곡이 되므로, 나중에 끄더라도 이미 가져간 곡은 남습니다.
+      </p>
+      {!teams ? <p className="muted">불러오는 중…</p> : teams.length === 0 ? <p className="muted">팀이 없습니다</p> : (
+        <ul className="copyright-list">
+          {teams.map((t) => (
+            <li key={t._id} className="library-team-row">
+              <span>
+                {t.sharedLibrary && <span className="copyright-status st-resolved">공용</span>} <b>{t.name}</b>
+                <small className="muted-dark"> · 곡 {t.songs.toLocaleString()}곡 · 팀원 {t.members}명 · 팀장 {t.owner}</small>
+              </span>
+              <button type="button" className={t.sharedLibrary ? 'secondary' : ''} onClick={() => toggle(t)}>
+                {t.sharedLibrary ? '공용 끄기' : '공용으로 열기'}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
       {msg && <p className="share-pin-msg">{msg}</p>}
     </div>

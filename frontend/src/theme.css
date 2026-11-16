@@ -640,3 +640,36 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .zoom-bar button:disabled { opacity: 0.35; background: transparent; }
 .sheet-tap { text-shadow: 0 0 6px rgba(0, 0, 0, 0.9); }
 @media (max-width: 600px) { .zoom-bar button { min-width: 30px; height: 28px; padding: 0 6px; font-size: 13px; } }
+
+/* 악보만 크게: 악보 말고는 작은 위치 표시와 나가기만 */
+.sheet-focus .annot-dock { display: none; }
+.sheet-topbar .sheet-focus-btn { font-weight: 700; }
+.focus-bar { position: absolute; left: 10px; top: 8px; z-index: 7; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 200px); padding: 3px 10px 3px 3px; border-radius: 999px; background: rgba(17, 17, 17, 0.82); color: #fff; font-size: 13px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.focus-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.focus-bar button { width: 30px; height: 30px; padding: 0; border: none; border-radius: 999px; background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 14px; }
+.focus-live { color: #4ade80; }
+
+/* 공용 곡 목록 */
+.library-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.library-head h2 { margin: 0 0 4px; }
+.library-head p { margin: 0; font-size: 14px; }
+.library-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.library-tools input { flex: 1; min-width: 14em; }
+.library-tools span, .library-actions span { font-size: 13px; }
+.library-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.library-actions button:not(.secondary):disabled { background: var(--brand); color: #fff; opacity: 0.4; }
+.library-list { list-style: none; margin: 10px 0 0; padding: 0; max-height: 420px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.library-list li { border-bottom: 1px solid var(--line); }
+.library-list li:last-child { border-bottom: none; }
+.library-list label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 8px 10px; font-size: 14px; cursor: pointer; }
+.library-list input { width: auto; }
+.library-list .is-mine label { cursor: default; opacity: 0.6; }
+.library-title { font-weight: 600; }
+.library-key { padding: 0 6px; border-radius: 6px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 700; }
+.library-bpm { font-size: 12px; }
+.library-mine { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+.library-more { margin-top: 8px; width: 100%; }
+@media (max-width: 600px) { .library-head { flex-direction: column; } }
+.library-team-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.library-team-row button { font-size: 13px; padding: 5px 12px; }
+.library-head > button { flex-shrink: 0; white-space: nowrap; }
