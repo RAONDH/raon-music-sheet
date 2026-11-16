@@ -1103,6 +1103,7 @@ export default function SetlistDetail({
               </div>
             )}
 
+            <div className={pickerSearch ? 'search-results-hold is-short' : undefined}>
             {pickerSongs.length === 0 ? (
               <p className="muted">
                 {Object.values(pickerFilters).some(Boolean) ? '상세 검색 조건에 맞는 곡이 없습니다'
@@ -1143,6 +1144,7 @@ export default function SetlistDetail({
                 })}
               </div>
             )}
+            </div>
 
             <button
               onClick={handleAddSongs}

@@ -130,7 +130,10 @@ export default function SongList({ songs, setlists = [], workspaceLabel = '개�
           <h2 style={{ margin: 0 }}>
             전체 곡 목록
             <span className="song-total">총 {songs.length}곡</span>
-            {isFiltered && <span className="song-shown">지금 보이는 곡 {filtered.length}곡</span>}
+            {/* 검색할 때마다 제목 줄 폭이 바뀌어 검색 칸이 흔들리지 않도록 자리를 늘 잡아 둔다 */}
+            <span className="song-shown" style={{ visibility: isFiltered ? 'visible' : 'hidden' }} aria-hidden={!isFiltered}>
+              지금 보이는 곡 {filtered.length}곡
+            </span>
           </h2>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
@@ -190,6 +193,8 @@ export default function SongList({ songs, setlists = [], workspaceLabel = '개�
         )}
         {showThemes && <ThemeManager songs={songs} onRename={onRenameTheme} onClose={() => setShowThemes(false)} />}
 
+        {/* 검색으로 목록이 줄어도 화면 높이가 갑자기 줄어 위아래로 튀지 않게, 검색 중에는 결과 자리를 한 화면 높이만큼 잡아 둔다 */}
+        <div className={isFiltered ? 'search-results-hold' : undefined}>
         {songs.length > 0 && (
           <div className="key-chips" role="group" aria-label="Key별 곡 수">
             <button
@@ -281,6 +286,7 @@ export default function SongList({ songs, setlists = [], workspaceLabel = '개�
             </div>
           </div>
         ))}
+        </div>
 
         <SongViewer song={viewing} onClose={() => setViewing(null)} />
       </div>

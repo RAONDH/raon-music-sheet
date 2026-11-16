@@ -673,3 +673,10 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .library-team-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .library-team-row button { font-size: 13px; padding: 5px 12px; }
 .library-head > button { flex-shrink: 0; white-space: nowrap; }
+
+/* 검색 중 결과 자리 잡기: 글자를 칠 때 목록이 줄어 화면이 위아래로 튀지 않게 */
+.search-results-hold { min-height: 100vh; }
+.search-results-hold.is-short { min-height: 50vh; }
+.song-shown { font-variant-numeric: tabular-nums; }
+.library-list { height: min(420px, 60vh); }
+.song-shown { min-width: 9.5em; }
