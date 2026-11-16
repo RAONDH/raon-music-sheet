@@ -4,7 +4,7 @@ import { ZOOM_MIN, ZOOM_MAX, zoomIn, zoomOut } from '../utils/zoom'
 
 // 악보 보기의 악보 한 쪽: 처음에는 쪽 전체가 화면에 들어오게 맞추고(zoom 1), 키우면 스크롤로 움직여 본다
 // zoom·onZoom은 부모가 갖는다 (키보드 +/−와 같이 쓰려고)
-export default function FitSheet({ view, song, shareToken, pin, zoom, onZoom, reserveBottom = 0 }) {
+export default function FitSheet({ view, song, shareToken, pin, zoom, onZoom, reserveTop = 0, reserveBottom = 0 }) {
   const boxRef = useRef(null)
   const [box, setBox] = useState({ w: 0, h: 0, dock: 0 })
   const [nat, setNat] = useState(null) // 악보 이미지 원래 크기
@@ -38,7 +38,7 @@ export default function FitSheet({ view, song, shareToken, pin, zoom, onZoom, re
 
   const sameImg = nat && nat.src === view?.src
   const availW = Math.max(1, box.w - 16)
-  const availH = Math.max(1, box.h - box.dock - reserveBottom - 16)
+  const availH = Math.max(1, box.h - box.dock - reserveTop - reserveBottom - 16)
   const fit = sameImg ? Math.min(availW / nat.w, availH / nat.h) : 0
   const width = sameImg ? Math.round(nat.w * fit * zoom) : null
   const widthZoom = sameImg ? availW / (nat.w * fit) : 1 // 가로를 꽉 채우는 배율
@@ -50,7 +50,7 @@ export default function FitSheet({ view, song, shareToken, pin, zoom, onZoom, re
   return (
     <>
       <div ref={boxRef} className="fit-sheet" data-zoomed={zoom > 1 ? '1' : undefined}>
-        <div className="fit-sheet-inner" style={{ paddingBottom: reserveBottom }}>
+        <div className="fit-sheet-inner" style={{ paddingTop: 8 + reserveTop, paddingBottom: reserveBottom }}>
           <SheetPageView view={view} song={song} shareToken={shareToken} pin={pin} dark
             imgStyle={imgStyle}
             onImgLoad={(e) => setNat({ src: view.src, w: e.currentTarget.naturalWidth || 1, h: e.currentTarget.naturalHeight || 1 })} />

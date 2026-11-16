@@ -51,6 +51,17 @@ export default function PublicSetlistView() {
   const [showPageGrid,  setShowPageGrid]  = useState(false)
   // 악보 보기 배율: 1 = 쪽 전체가 화면에 들어옴. 곡이 바뀌면 다시 1로
   const [zoom,          setZoom]          = useState(1)
+  // 악보만 크게: 머리말·진행 막대·곡 정보 줄을 숨기고 악보만 화면 가득 (이 기기에 기억)
+  const [focus, setFocus] = useState(() => { try { return localStorage.getItem('sheetFocus') === '1' } catch { return false } })
+  function changeFocus(on) {
+    setFocus(on)
+    try { localStorage.setItem('sheetFocus', on ? '1' : '0') } catch { /* 기억 못 해도 지금 화면에는 적용 */ }
+    // 휴대폰·태블릿 주소창까지 숨기려고 브라우저 전체 화면도 함께 (지원하지 않는 기기는 그냥 넘어간다)
+    try {
+      if (on && !document.fullscreenElement) document.documentElement.requestFullscreen?.()?.catch?.(() => {})
+      else if (!on && document.fullscreenElement) document.exitFullscreen?.()?.catch?.(() => {})
+    } catch { /* 전체 화면을 못 써도 악보만 크게는 된다 */ }
+  }
   const touchStartX = useRef(null)
   // 공유 비밀번호가 걸린 콘티: 한 번 맞히면 이 탭이 열려 있는 동안 기억한다
   const pinKey = `sharePin_${token}`
@@ -286,6 +297,8 @@ export default function PublicSetlistView() {
     else if (e.key === '+' || e.key === '=') setZoom((z) => zoomIn(z))
     else if (e.key === '-') setZoom((z) => zoomOut(z))
     else if (e.key === '0') setZoom(1)
+    else if (e.key === 'f' || e.key === 'F') changeFocus(!focus)
+    else if (e.key === 'Escape' && focus) changeFocus(false)
   }
   useEffect(() => { keyRef.current = handleSheetKey })
   useEffect(() => {
@@ -370,9 +383,10 @@ export default function PublicSetlistView() {
   )
 
   return (
-    <div className={stage ? 'stage-mode' : undefined} style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: 'var(--bg, #f8fafc)' }}>
+    <div className={[stage && 'stage-mode', sheetOnly && focus && 'sheet-focus'].filter(Boolean).join(' ') || undefined}
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: 'var(--bg, #f8fafc)', ...(sheetOnly && focus ? { height: '100dvh', overflow: 'hidden' } : {}) }}>
       {/* 헤더 */}
-      <header className="topbar" style={{ flexShrink: 0 }}>
+      {!(sheetOnly && focus) && <header className="topbar" style={{ flexShrink: 0 }}>
         <div>
           <h1>RAON music sheet</h1>
           <p className="muted">
@@ -404,7 +418,7 @@ export default function PublicSetlistView() {
             {sheetOnly ? '📋 전체 보기' : '📄 악보만'}
           </button>
         </div>
-      </header>
+      </header>}
 
       {!sheetOnly && liveBar}
       {notice && <div className="live-toast" role="status">{notice}</div>}
@@ -420,9 +434,9 @@ export default function PublicSetlistView() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {liveBar}
+          {!focus && liveBar}
           {/* 상단 바: 곡 위치 · 곡 이동 · 쪽 위치 */}
-          <div className="sheet-topbar">
+          {!focus && <div className="sheet-topbar">
             <button type="button" onClick={() => handleSelectSong(currentIdx - 1)} disabled={currentIdx === 0} aria-label="이전 곡">⏮ 곡</button>
             <span className="sheet-pill">
               곡 {currentIdx + 1}/{songs.length} · {song?.title}
@@ -431,15 +445,26 @@ export default function PublicSetlistView() {
             </span>
             <button type="button" onClick={() => handleSelectSong(currentIdx + 1)} disabled={currentIdx === songs.length - 1} aria-label="다음 곡">곡 ⏭</button>
             <button type="button" className={showPageGrid ? 'is-on' : ''} onClick={() => setShowPageGrid(v => !v)}>⊞ 목록</button>
-          </div>
-          {song && <div className="sheet-key-dock"><KeyNotice song={song} dark compact /></div>}
-          {song?.flow?.length > 0 ? (
+            <button type="button" className="sheet-focus-btn" onClick={() => changeFocus(true)} title="악보만 화면 가득 보기 (F)">⛶ 악보만 크게</button>
+          </div>}
+          {!focus && song && <div className="sheet-key-dock"><KeyNotice song={song} dark compact /></div>}
+          {focus ? null : song?.flow?.length > 0 ? (
             <div className="sheet-flow-dock"><span>진행</span><FlowChips flow={song.flow} className="flow-dark" /></div>
           ) : song?.structure ? (
             <div className="sheet-flow-dock"><span>송폼</span><b className="sheet-flow-text">{song.structure}</b></div>
           ) : null}
 
           <div className="sheet-stage">
+          {/* 악보만 크게: 지금 위치와 나가기만 작게 */}
+          {focus && (
+            <div className="focus-bar">
+              <button type="button" onClick={() => changeFocus(false)} aria-label="악보만 크게 끝내기" title="돌아가기 (Esc)">✕</button>
+              <span>
+                {presenting && <b className="focus-live">● 진행 중 </b>}
+                {currentIdx + 1}/{songs.length} · {song?.title}{views.length > 1 ? ` · ${page + 1}/${views.length}쪽` : ''}
+              </span>
+            </div>
+          )}
           {/* 곡 목록 오버레이 */}
           {showPageGrid && (
             <div style={{ position: 'absolute', inset: 0, zIndex: 15, background: 'rgba(0,0,0,0.92)', overflowY: 'auto', padding: '56px 16px 16px', WebkitOverflowScrolling: 'touch' }}>
@@ -479,7 +504,7 @@ export default function PublicSetlistView() {
 
           {/* 악보 한 쪽 — 처음엔 쪽 전체가 보이게, 확대하면 스크롤로 움직여 본다 */}
           <FitSheet view={views[page]} song={song} shareToken={token} pin={pin} zoom={zoom} onZoom={setZoom}
-            reserveBottom={views.length > 1 ? 76 : 28} />
+            reserveTop={focus ? 40 : 0} reserveBottom={views.length > 1 ? 76 : 28} />
 
           <div className="sheet-bottom">
             <PageNav index={page} total={views.length} onChange={setPageIdx} dark />
