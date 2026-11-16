@@ -628,3 +628,15 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .admin-head { margin-bottom: 8px; }
 .admin-back { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--brand); text-decoration: none; background: var(--surface); }
 .admin-back:hover { border-color: var(--brand); }
+
+/* 악보 보기: 쪽 전체 맞춤 + 확대·축소 */
+.fit-sheet { position: absolute; inset: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
+.fit-sheet-inner { display: flex; min-width: 100%; min-height: 100%; width: max-content; box-sizing: border-box; padding: 8px; }
+.fit-sheet-inner > * { margin: auto; }
+.zoom-bar { position: absolute; right: 10px; top: 8px; z-index: 7; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(17, 17, 17, 0.82); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.zoom-bar button { min-width: 36px; height: 32px; padding: 0 8px; border: none; border-radius: 999px; background: transparent; color: #fff; font-size: 15px; font-weight: 700; }
+.zoom-bar button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.15); }
+.zoom-bar button.is-on { background: rgba(255, 255, 255, 0.18); }
+.zoom-bar button:disabled { opacity: 0.35; background: transparent; }
+.sheet-tap { text-shadow: 0 0 6px rgba(0, 0, 0, 0.9); }
+@media (max-width: 600px) { .zoom-bar button { min-width: 30px; height: 28px; padding: 0 6px; font-size: 13px; } }

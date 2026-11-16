@@ -4,7 +4,7 @@ import { keyStateText } from '../utils/sheets'
 
 // 악보 한 쪽: 사진·PDF 쪽을 보여 주고 그 쪽에 필기를 붙인다.
 // 열지 못하면 이유와 할 수 있는 방법을 보여 준다
-export function SheetPageView({ view, song, shareToken, pin, dark = false, toolbarHost, wrapStyle, imgStyle, imgClassName }) {
+export function SheetPageView({ view, song, shareToken, pin, dark = false, toolbarHost, wrapStyle, imgStyle, imgClassName, onImgLoad }) {
   const [failedSrc, setFailedSrc] = useState(null)
   const [blockedSrc, setBlockedSrc] = useState(null) // { src, status }: 차단(451)이나 권한 없음(401·403)으로 못 연 악보
   if (!view) return <SheetEmpty title={song?.title} dark={dark} />
@@ -31,6 +31,7 @@ export function SheetPageView({ view, song, shareToken, pin, dark = false, toolb
     <SheetAnnotator key={`${song._id}:${view.pageKey}`} shareToken={shareToken} pin={pin} songId={song._id} page={view.pageKey}
       dark={dark} toolbarHost={toolbarHost} wrapStyle={wrapStyle}>
       <img src={view.src} alt={`${song.title} 악보`} className={imgClassName} style={imgStyle} draggable={false}
+        onLoad={onImgLoad}
         onError={() => {
           const src = view.src
           setFailedSrc(src)

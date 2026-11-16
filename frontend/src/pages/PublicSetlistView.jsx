@@ -8,6 +8,8 @@ import { COPYRIGHT_NOTICE } from '../utils/copyright'
 import { formatKoreanDate } from '../utils/dates'
 import { useSheetViews } from '../components/useSheetViews'
 import { SheetPageView, KeyNotice, PageNav } from '../components/SheetPageView'
+import FitSheet from '../components/FitSheet'
+import { zoomIn, zoomOut } from '../utils/zoom'
 import { effectiveSheets } from '../utils/sheets'
 import { FlowChips } from '../components/FlowEditor'
 import LoginForm from '../components/LoginForm'
@@ -47,6 +49,8 @@ export default function PublicSetlistView() {
   const [loading,    setLoading]    = useState(true)
   const [sheetOnly,     setSheetOnly]     = useState(searchParams.get('view') === 'sheet')
   const [showPageGrid,  setShowPageGrid]  = useState(false)
+  // 악보 보기 배율: 1 = 쪽 전체가 화면에 들어옴. 곡이 바뀌면 다시 1로
+  const [zoom,          setZoom]          = useState(1)
   const touchStartX = useRef(null)
   // 공유 비밀번호가 걸린 콘티: 한 번 맞히면 이 탭이 열려 있는 동안 기억한다
   const pinKey = `sharePin_${token}`
@@ -230,6 +234,7 @@ export default function PublicSetlistView() {
     if (idx < 0 || idx >= (setlist?.songs?.length ?? 0)) return
     setCurrentIdx(idx)
     setPageIdx(0)
+    setZoom(1)
     setShowPageGrid(false)
     if (presenting) {
       pushLive(idx)
@@ -262,10 +267,32 @@ export default function PublicSetlistView() {
 
   function handleTouchEnd(e) {
     if (touchStartX.current === null) return
+    if (zoom > 1) { touchStartX.current = null; return } // 확대해서 옆으로 움직여 보는 중에는 넘기지 않는다
     const delta = e.changedTouches[0].clientX - touchStartX.current
     if (Math.abs(delta) > 50) step(delta < 0 ? 1 : -1)
     touchStartX.current = null
   }
+
+  // 악보 보기 키보드·페이지 넘김 페달: → ↓ PageDown 스페이스 = 다음, ← ↑ PageUp = 이전, + − = 확대·축소, 0 = 전체
+  const keyRef = useRef(null)
+  function handleSheetKey(e) {
+    if (!sheetOnly || e.metaKey || e.ctrlKey || e.altKey) return
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return
+    const next = ['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)
+    const prev = ['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)
+    // 확대 중 위·아래·스페이스는 악보 스크롤에 쓴다
+    if (zoom > 1 && ['ArrowDown', 'ArrowUp', ' '].includes(e.key)) return
+    if (next || prev) { e.preventDefault(); step(next ? 1 : -1) }
+    else if (e.key === '+' || e.key === '=') setZoom((z) => zoomIn(z))
+    else if (e.key === '-') setZoom((z) => zoomOut(z))
+    else if (e.key === '0') setZoom(1)
+  }
+  useEffect(() => { keyRef.current = handleSheetKey })
+  useEffect(() => {
+    const onKey = (e) => keyRef.current?.(e)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   if (loading) return (
     <div className="dashboard">
@@ -450,11 +477,9 @@ export default function PublicSetlistView() {
             </div>
           )}
 
-          {/* 악보 한 쪽 — 잘리지 않게 가로 맞춤, 세로 스크롤 */}
-          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-            <SheetPageView view={views[page]} song={song} shareToken={token} pin={pin} dark
-              imgStyle={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none' }} />
-          </div>
+          {/* 악보 한 쪽 — 처음엔 쪽 전체가 보이게, 확대하면 스크롤로 움직여 본다 */}
+          <FitSheet view={views[page]} song={song} shareToken={token} pin={pin} zoom={zoom} onZoom={setZoom}
+            reserveBottom={views.length > 1 ? 76 : 28} />
 
           <div className="sheet-bottom">
             <PageNav index={page} total={views.length} onChange={setPageIdx} dark />
