@@ -22,3 +22,6 @@ export function getMyLibrary() {
 export function setMyLibrary(shared) {
   return apiFetch('/admin/me/library', { method: 'PUT', body: JSON.stringify({ shared }) })
 }
+export function giveSongs(id, from, songIds) {
+  return apiFetch(`/admin/users/${id}/give-songs`, { method: 'POST', body: JSON.stringify({ from, songIds }) })
+}

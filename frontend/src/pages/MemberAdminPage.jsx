@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import LoginForm from '../components/LoginForm'
 import { getOperatorInfo } from '../api/copyright'
-import { listMembers, resetMemberPassword, setMemberSuspended, listTeamsForAdmin, setTeamLibrary, getMyLibrary, setMyLibrary } from '../api/admin'
+import { listMembers, resetMemberPassword, setMemberSuspended, listTeamsForAdmin, setTeamLibrary, getMyLibrary, setMyLibrary, giveSongs } from '../api/admin'
+import { getMyTeams } from '../api/teams'
+import { getSongs } from '../api/songs'
+import { filterSongs } from '../utils/songSort'
+import { effectiveSheets } from '../utils/sheets'
 
 const when = (d) => (d ? new Date(d).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '')
 
@@ -141,6 +145,8 @@ function MemberDetail({ user: u, onChanged }) {
         </div>
       )}
 
+      {!locked && <GiveSongs user={u} onDone={onChanged} />}
+
       {temp && (
         <div className="member-temp" role="status">
           <p>아래 임시 비밀번호를 <b>{temp.email}</b> 님에게 직접 알려 주세요. <b>이 화면을 닫으면 다시 볼 수 없습니다.</b></p>
@@ -148,6 +154,86 @@ function MemberDetail({ user: u, onChanged }) {
           <p className="muted-dark">{when(temp.expiresAt)}까지 쓸 수 있고, 이 비밀번호로 로그인하면 새 비밀번호로 바꾸라는 안내가 나옵니다.</p>
         </div>
       )}
+      {msg && <p className="share-pin-msg">{msg}</p>}
+    </div>
+  )
+}
+
+// 관리자가 고른 내 곡(악보 연결 포함)을 이 회원의 개인 공간으로 복사해 준다
+function GiveSongs({ user: u, onDone }) {
+  const [open, setOpen] = useState(false)
+  const [teams, setTeams] = useState([])
+  const [from, setFrom] = useState('personal')
+  const [songs, setSongs] = useState(null)
+  const [search, setSearch] = useState('')
+  const [onlySheets, setOnlySheets] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    getMyTeams().then((t) => setTeams(Array.isArray(t) ? t : [])).catch(() => setTeams([]))
+  }, [open])
+  useEffect(() => {
+    if (!open) return
+    let alive = true
+    getSongs(from === 'personal' ? '' : from)
+      .then((d) => { if (alive) { setSongs(Array.isArray(d) ? d : []); setMsg('') } })
+      .catch((err) => { if (alive) { setSongs([]); setMsg(err.message) } })
+    return () => { alive = false }
+  }, [open, from])
+
+  const picked = useMemo(() => {
+    const list = filterSongs(songs || [], search)
+    return onlySheets ? list.filter((s) => effectiveSheets(s).length > 0) : list
+  }, [songs, search, onlySheets])
+
+  async function give() {
+    if (!picked.length) return
+    if (!window.confirm(`${picked.length.toLocaleString()}곡을 ${u.email} 님의 개인 공간으로 복사해 줄까요?\n악보도 함께 연결되어 이 회원이 볼 수 있게 됩니다. 복사한 곡은 이 회원의 곡이 되어 되돌릴 수 없습니다.`)) return
+    setBusy(true)
+    setMsg('')
+    try {
+      const r = await giveSongs(u._id, from, picked.map((s) => s._id))
+      const parts = [`${r.copied.toLocaleString()}곡을 복사해 주었습니다`]
+      if (r.filled) parts.push(`이미 있던 ${r.filled}곡에 악보를 넣었습니다`)
+      if (r.skipped) parts.push(`이미 있는 ${r.skipped}곡은 건너뜀`)
+      setMsg(parts.join(' · ') + '.')
+      onDone?.()
+    } catch (err) { setMsg(err.message) } finally { setBusy(false) }
+  }
+
+  if (!open) {
+    return (
+      <div className="copyright-actions">
+        <button type="button" className="secondary" onClick={() => setOpen(true)}>🎁 내 곡 복사해 주기</button>
+      </div>
+    )
+  }
+  return (
+    <div className="give-songs">
+      <h3>🎁 내 곡 복사해 주기</h3>
+      <p className="muted-dark">
+        내 곡을 <b>{u.email}</b> 님의 <b>개인 공간</b>으로 복사합니다. 곡 정보·MR 주소와 함께 <b>악보도 연결</b>되어 이 회원이 볼 수 있습니다(팀 메모는 빠짐).
+        이 회원은 자기 곡으로 자유롭게 고칠 수 있고, 내 곡에는 영향이 없습니다. 같은 제목·아티스트가 이미 있으면 건너뛰고, 그 곡에 악보가 없을 때만 악보를 채웁니다.
+      </p>
+      <div className="give-songs-tools">
+        <label>복사할 곳
+          <select value={from} onChange={(e) => { setFrom(e.target.value); setSongs(null) }}>
+            <option value="personal">내 개인 공간</option>
+            {teams.map((t) => <option key={t._id} value={t._id}>{t.name} 팀</option>)}
+          </select>
+        </label>
+        <input type="search" value={search} placeholder="제목·아티스트·주제로 고르기 (비우면 전부)" onChange={(e) => setSearch(e.target.value)} aria-label="복사할 곡 찾기" />
+        <label className="give-songs-check"><input type="checkbox" checked={onlySheets} onChange={(e) => setOnlySheets(e.target.checked)} /> 악보 있는 곡만</label>
+      </div>
+      <div className="copyright-actions">
+        <button type="button" disabled={busy || !songs || !picked.length} onClick={give}>
+          {songs ? `${picked.length.toLocaleString()}곡 복사해 주기` : '곡 불러오는 중…'}
+        </button>
+        <button type="button" className="secondary" disabled={busy} onClick={() => setOpen(false)}>닫기</button>
+      </div>
+      <p className="muted-dark">악보는 우리 교회가 가진 사용 권한 안에서만 나눠 주세요.</p>
       {msg && <p className="share-pin-msg">{msg}</p>}
     </div>
   )

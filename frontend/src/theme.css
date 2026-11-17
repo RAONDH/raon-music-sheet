@@ -683,3 +683,11 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .focus-menu-closed .zoom-bar, .focus-menu-closed .sheet-bottom { display: none; }
 .focus-menu-open .zoom-bar { top: auto; bottom: 64px; }
 .focus-live-dot { position: absolute; left: 10px; top: 10px; z-index: 7; padding: 2px 8px; border-radius: 999px; background: rgba(17, 17, 17, 0.75); color: #4ade80; font-size: 12px; font-weight: 700; pointer-events: none; }
+
+/* 관리자: 내 곡 복사해 주기 */
+.give-songs { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+.give-songs h3 { margin: 0 0 6px; font-size: 16px; }
+.give-songs-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; }
+.give-songs-tools label { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+.give-songs-tools input[type="search"] { flex: 1 1 220px; min-width: 0; }
+.give-songs-check input { width: auto; }

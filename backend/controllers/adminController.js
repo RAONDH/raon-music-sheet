@@ -6,6 +6,8 @@ const Song = require('../models/Song')
 const Setlist = require('../models/Setlist')
 const { generateTempPassword } = require('../utils/tempPassword')
 const { isOperator } = require('../utils/operator')
+const { resolveWorkspace } = require('../utils/access')
+const { SHARED_FIELDS, sameKey } = require('./libraryController')
 
 // 관리자(ADMIN_EMAILS) 회원 관리: 가입한 회원 보기, 비밀번호 초기화, 사용 중지·다시 사용
 // 계정과 곡·콘티는 지우지 않는다 (사용 중지는 언제든 되돌릴 수 있다)
@@ -147,6 +149,59 @@ exports.setMyLibrary = async (req, res) => {
     if (typeof req.body?.shared !== 'boolean') return fail(res, 400, '잘못된 요청입니다')
     await User.updateOne({ _id: req.user._id }, { sharedLibrary: req.body.shared })
     res.json({ sharedLibrary: req.body.shared })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// 관리자가 고른 곡을 한 회원의 개인 공간으로 복사해 준다 (곡 정보 + MR 주소 + 악보 주소. 팀 메모는 빼고).
+// 악보는 파일을 복사하지 않고 같은 주소를 넣는다 → 받은 회원의 곡이 되므로 그 회원이 볼 수 있다
+// 같은 제목·아티스트가 이미 있으면 새로 만들지 않고, 그 곡에 악보가 없을 때만 악보를 채운다
+const GIVE_FIELDS = [...SHARED_FIELDS, 'mrUrl']
+const SHEET_FIELDS = ['sheets', 'sheetImageUrl', 'sheetPdfUrl']
+const MAX_GIVE = 5000
+const hasSheet = (s) => !!(s?.sheets?.length || s?.sheetImageUrl || s?.sheetPdfUrl)
+
+// POST /api/admin/users/:id/give-songs  { from: 'personal' | 팀 id, songIds: [] } → { email, copied, filled, skipped }
+exports.giveSongs = async (req, res) => {
+  try {
+    const user = await targetUser(req, res)
+    if (!user) return
+    const ids = [...new Set((req.body?.songIds || []).map(String))].filter((id) => mongoose.Types.ObjectId.isValid(id))
+    if (!ids.length) return fail(res, 400, '복사할 곡을 골라 주세요')
+    if (ids.length > MAX_GIVE) return fail(res, 400, `한 번에 ${MAX_GIVE.toLocaleString()}곡까지 복사할 수 있습니다`)
+    const ws = await resolveWorkspace(req.user, req.body?.from)
+    if (!ws) return fail(res, 403, '내가 쓰는 공간의 곡만 복사할 수 있습니다')
+
+    // 내 공간(개인 또는 내 팀)에 있는 곡만
+    const source = await Song.find({ $and: [{ _id: { $in: ids } }, ws.filter] }, [...GIVE_FIELDS, ...SHEET_FIELDS].join(' ')).lean()
+    const theirs = new Map()
+    for (const m of await Song.find({ user: user._id, team: null }, 'title artist ' + SHEET_FIELDS.join(' ')).lean()) {
+      const k = sameKey(m)
+      if (!theirs.has(k)) theirs.set(k, m)
+    }
+    const docs = []
+    const fills = []
+    for (const s of source) {
+      const k = sameKey(s)
+      const sheets = {}
+      SHEET_FIELDS.forEach((f) => { if (s[f] !== undefined) sheets[f] = s[f] })
+      const m = theirs.get(k)
+      if (m) {
+        if (!hasSheet(m) && hasSheet(s)) {
+          fills.push({ updateOne: { filter: { _id: m._id }, update: { $set: sheets } } })
+          Object.assign(m, sheets)
+        }
+        continue
+      }
+      const doc = { user: user._id, team: null, ...sheets }
+      GIVE_FIELDS.forEach((f) => { if (s[f] !== undefined) doc[f] = s[f] })
+      docs.push(doc)
+      theirs.set(k, doc)
+    }
+    if (docs.length) await Song.insertMany(docs)
+    if (fills.length) await Song.bulkWrite(fills)
+    res.json({ email: user.email, copied: docs.length, filled: fills.length, skipped: source.length - docs.length - fills.length })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

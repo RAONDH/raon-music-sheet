@@ -68,3 +68,6 @@ exports.copy = async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 }
+
+exports.SHARED_FIELDS = SHARED_FIELDS
+exports.sameKey = sameKey
