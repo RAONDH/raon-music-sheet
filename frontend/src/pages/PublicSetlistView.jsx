@@ -52,9 +52,20 @@ export default function PublicSetlistView() {
   // 악보 보기 배율: 1 = 쪽 전체가 화면에 들어옴. 곡이 바뀌면 다시 1로
   const [zoom,          setZoom]          = useState(1)
   // 악보만 크게: 머리말·진행 막대·곡 정보 줄을 숨기고 악보만 화면 가득 (이 기기에 기억)
-  const [focus, setFocus] = useState(() => { try { return localStorage.getItem('sheetFocus') === '1' } catch { return false } })
+  // 정한 적이 없으면 휴대폰·태블릿(손가락으로 쓰는 기기)은 처음부터 악보만 크게
+  const [focus, setFocus] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sheetFocus')
+      if (saved === '1' || saved === '0') return saved === '1'
+    } catch { /* 기억을 못 읽으면 기기에 맞춘다 */ }
+    return !!window.matchMedia?.('(pointer: coarse)').matches
+  })
+  // 악보만 크게에서 화면을 누르면 메뉴(진행 막대·곡 이동·확대)가 악보 위에 잠깐 나온다. 악보 크기는 그대로
+  const [menu, setMenu] = useState(false)
   function changeFocus(on) {
     setFocus(on)
+    setMenu(false)
+    if (on) flash('화면을 누르면 메뉴가 나옵니다')
     try { localStorage.setItem('sheetFocus', on ? '1' : '0') } catch { /* 기억 못 해도 지금 화면에는 적용 */ }
     // 휴대폰·태블릿 주소창까지 숨기려고 브라우저 전체 화면도 함께 (지원하지 않는 기기는 그냥 넘어간다)
     try {
@@ -408,7 +419,7 @@ export default function PublicSetlistView() {
             </button>
           )}
           <button
-            onClick={() => setSheetOnly(v => !v)}
+            onClick={() => { setSheetOnly(v => !v); window.scrollTo(0, 0) }}
             style={{
               fontSize: 12, padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600,
               background: sheetOnly ? '#15803d' : '#e2e8f0',
@@ -430,9 +441,15 @@ export default function PublicSetlistView() {
       {/* 악보만 슬라이드 모드 */}
       {sheetOnly && (
         <div
+          className={focus ? (menu ? 'focus-menu-open' : 'focus-menu-closed') : undefined}
           style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: '#111', position: 'relative' }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onClick={(e) => {
+            // 악보만 크게: 버튼이 아닌 곳(악보)을 누르면 메뉴를 열고 닫는다
+            if (!focus || e.target.closest('button, a, input, select, label, .focus-menu, .annot-toolbar')) return
+            setMenu((v) => !v)
+          }}
         >
           {!focus && liveBar}
           {/* 상단 바: 곡 위치 · 곡 이동 · 쪽 위치 */}
@@ -455,14 +472,30 @@ export default function PublicSetlistView() {
           ) : null}
 
           <div className="sheet-stage">
-          {/* 악보만 크게: 지금 위치와 나가기만 작게 */}
-          {focus && (
-            <div className="focus-bar">
-              <button type="button" onClick={() => changeFocus(false)} aria-label="악보만 크게 끝내기" title="돌아가기 (Esc)">✕</button>
-              <span>
-                {presenting && <b className="focus-live">● 진행 중 </b>}
-                {currentIdx + 1}/{songs.length} · {song?.title}{views.length > 1 ? ` · ${page + 1}/${views.length}쪽` : ''}
-              </span>
+          {/* 악보만 크게: 평소에는 악보만. 화면을 누르면 메뉴가 악보 위에 겹쳐 나온다 */}
+          {focus && !menu && presenting && <span className="focus-live-dot">● 진행 중</span>}
+          {focus && menu && (
+            <div className="focus-menu">
+              {liveBar}
+              <div className="sheet-topbar">
+                <button type="button" onClick={() => handleSelectSong(currentIdx - 1)} disabled={currentIdx === 0} aria-label="이전 곡">⏮ 곡</button>
+                <span className="sheet-pill">
+                  곡 {currentIdx + 1}/{songs.length} · {song?.title}
+                  {song?.key && <span style={{ marginLeft: 8, opacity: 0.7 }}>Key {song.key}</span>}
+                  {views.length > 1 && <b className="sheet-pill-page"> · {page + 1}/{views.length}쪽</b>}
+                </span>
+                <button type="button" onClick={() => handleSelectSong(currentIdx + 1)} disabled={currentIdx === songs.length - 1} aria-label="다음 곡">곡 ⏭</button>
+                <button type="button" className={showPageGrid ? 'is-on' : ''} onClick={() => setShowPageGrid(v => !v)}>⊞ 목록</button>
+                <button type="button" onClick={() => changeFocus(false)} title="메뉴를 늘 보이게 (Esc)">☰ 메뉴 고정</button>
+                <button type="button" onClick={() => { setSheetOnly(false); window.scrollTo(0, 0) }}>📋 전체 보기</button>
+                <button type="button" onClick={() => setMenu(false)} aria-label="메뉴 닫기">✕</button>
+              </div>
+              {song && <div className="sheet-key-dock"><KeyNotice song={song} dark compact /></div>}
+              {song?.flow?.length > 0 ? (
+                <div className="sheet-flow-dock"><span>진행</span><FlowChips flow={song.flow} className="flow-dark" /></div>
+              ) : song?.structure ? (
+                <div className="sheet-flow-dock"><span>송폼</span><b className="sheet-flow-text">{song.structure}</b></div>
+              ) : null}
             </div>
           )}
           {/* 곡 목록 오버레이 */}
@@ -504,7 +537,7 @@ export default function PublicSetlistView() {
 
           {/* 악보 한 쪽 — 처음엔 쪽 전체가 보이게, 확대하면 스크롤로 움직여 본다 */}
           <FitSheet view={views[page]} song={song} shareToken={token} pin={pin} zoom={zoom} onZoom={setZoom}
-            reserveTop={focus ? 40 : 0} reserveBottom={views.length > 1 ? 76 : 28} />
+            reserveBottom={focus ? 20 : views.length > 1 ? 76 : 28} />
 
           <div className="sheet-bottom">
             <PageNav index={page} total={views.length} onChange={setPageIdx} dark />
@@ -682,10 +715,13 @@ function LiveBar({ mode, conn, live, presenting, leaderIdx, leaderTitle, dark, o
 function MobileSongSlider({ songs, currentIdx, leaderIdx, onSelect }) {
   const sliderRef = useRef(null)
 
-  // 현재 곡이 바뀌면 자동으로 해당 항목이 보이도록 스크롤
+  // 현재 곡이 바뀌면 그 항목이 보이도록 슬라이더 안에서만 옆으로 움직인다
+  // (scrollIntoView는 화면 전체까지 끌어내려, 전체 보기를 열면 맨 아래로 내려가 버렸다)
   useEffect(() => {
-    const el = sliderRef.current?.querySelector(`[data-idx="${currentIdx}"]`)
-    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    const box = sliderRef.current
+    const el = box?.querySelector(`[data-idx="${currentIdx}"]`)
+    if (!box || !el) return
+    box.scrollTo({ left: el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2, behavior: 'smooth' })
   }, [currentIdx])
 
   function prev() { if (currentIdx > 0) onSelect(currentIdx - 1) }
@@ -889,6 +925,9 @@ function SongContent({ song, views, page, onPage, shareToken, pin, currentIdx = 
             <iframe
               src={`https://www.youtube.com/embed/${youtubeId}`}
               title="YouTube"
+              // 공유 화면은 다른 사이트에 주소를 보내지 않지만(no-referrer), 유튜브는 보낸 곳을 모르면 재생을 막는다(오류 153).
+              // 유튜브에만 사이트 이름(공유 링크 주소는 빼고)을 알려 준다
+              referrerPolicy="strict-origin-when-cross-origin"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

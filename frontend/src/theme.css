@@ -644,10 +644,6 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 /* 악보만 크게: 악보 말고는 작은 위치 표시와 나가기만 */
 .sheet-focus .annot-dock { display: none; }
 .sheet-topbar .sheet-focus-btn { font-weight: 700; }
-.focus-bar { position: absolute; left: 10px; top: 8px; z-index: 7; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 200px); padding: 3px 10px 3px 3px; border-radius: 999px; background: rgba(17, 17, 17, 0.82); color: #fff; font-size: 13px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
-.focus-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.focus-bar button { width: 30px; height: 30px; padding: 0; border: none; border-radius: 999px; background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 14px; }
-.focus-live { color: #4ade80; }
 
 /* 공용 곡 목록 */
 .library-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -680,3 +676,10 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .song-shown { font-variant-numeric: tabular-nums; }
 .library-list { height: min(420px, 60vh); }
 .song-shown { min-width: 9.5em; }
+
+/* 악보만 크게: 평소엔 악보만, 화면을 누르면 메뉴가 악보 위에 겹쳐 나온다 */
+.focus-menu { position: absolute; top: 0; left: 0; right: 0; z-index: 12; background: rgba(17, 17, 17, 0.95); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); padding-bottom: 6px; max-height: 100%; overflow-y: auto; }
+.focus-menu .sheet-topbar { flex-wrap: wrap; }
+.focus-menu-closed .zoom-bar, .focus-menu-closed .sheet-bottom { display: none; }
+.focus-menu-open .zoom-bar { top: auto; bottom: 64px; }
+.focus-live-dot { position: absolute; left: 10px; top: 10px; z-index: 7; padding: 2px 8px; border-radius: 999px; background: rgba(17, 17, 17, 0.75); color: #4ade80; font-size: 12px; font-weight: 700; pointer-events: none; }
