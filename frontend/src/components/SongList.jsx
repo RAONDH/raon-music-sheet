@@ -9,7 +9,7 @@ import SongFilterBar from './SongFilterBar'
 import { exportSongsCsv, exportBackupJson } from '../utils/exporters'
 import { formatKoreanDate } from '../utils/dates'
 import { metaFormValues, usageStats, usageText, applyMetaFilters, sortByUsage, EMPTY_FILTERS, NO_THEME, hasNoTheme, customThemes, tempoFromBpm } from '../utils/songMeta'
-import { sortSongs, filterSongs, countByKey, filterByKey } from '../utils/songSort'
+import { sortSongs, filterSongs, countByKey, filterByKey, rankBySearch } from '../utils/songSort'
 
 const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
                'Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'A#m', 'Bm']
@@ -120,7 +120,7 @@ export default function SongList({ songs, setlists = [], workspaceLabel = 'ê°œì
   const base = favOnly ? searched.filter((s) => s.isFavorite) : searched
   const keyCounts = countByKey(base)
   const filtered = filterByKey(base, keyFilter)
-  const sorted = sortBy === 'most' || sortBy === 'stale' ? sortByUsage(filtered, usage, sortBy) : sortSongs(filtered, sortBy)
+  const sorted = rankBySearch(sortBy === 'most' || sortBy === 'stale' ? sortByUsage(filtered, usage, sortBy) : sortSongs(filtered, sortBy), search)
   const isFiltered = !!(search || favOnly || keyFilter || Object.values(filters).some(Boolean))
 
   return (

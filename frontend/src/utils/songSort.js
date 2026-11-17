@@ -32,6 +32,25 @@ export function filterSongs(songs, search) {
       .some((v) => v != null && searchable(v).includes(q)))
 }
 
+// 검색어와 얼마나 맞는지: 제목이 똑같음 → 제목이 검색어로 시작 → 제목에 들어 있음 → 다른 칸(아티스트·주제 등)에만 있음
+function searchRank(song, q) {
+  const title = searchable(song.title)
+  if (title === q) return 0
+  if (title.startsWith(q)) return 1
+  if (title.includes(q)) return 2
+  return 3
+}
+
+// 검색 중이면 제목이 맞는 곡을 위로 올린다. 같은 순위 안에서는 고른 정렬 순서를 그대로 둔다
+export function rankBySearch(songs, search) {
+  const q = searchable(search)
+  if (!q) return songs
+  return songs
+    .map((song, i) => ({ song, i, r: searchRank(song, q) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.song)
+}
+
 // Key별 곡 수 → [['C', 3], ['D', 5], ..., ['none', 2]] (Key 순서대로, Key 없는 곡은 맨 뒤 'none')
 export function countByKey(songs) {
   const counts = new Map()

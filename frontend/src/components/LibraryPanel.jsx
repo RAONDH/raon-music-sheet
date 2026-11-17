@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getLibrary, copyFromLibrary } from '../api/library'
-import { filterSongs } from '../utils/songSort'
+import { filterSongs, rankBySearch } from '../utils/songSort'
 
 const PAGE = 100
 // 제목·아티스트가 같은 곡인지 (띄어쓰기·대소문자 무시) — 서버와 같은 기준
@@ -23,7 +23,7 @@ export default function LibraryPanel({ songs, workspace, workspaceLabel, onCopie
   }, [])
 
   const have = useMemo(() => new Set(songs.map(sameKey)), [songs])
-  const results = useMemo(() => filterSongs(lib?.songs || [], search), [lib, search])
+  const results = useMemo(() => rankBySearch(filterSongs(lib?.songs || [], search), search), [lib, search])
 
   // 공용 곡이 없거나, 지금 보고 있는 공간이 바로 공용 곡의 출처(공용 팀, 또는 공용으로 연 내 개인 공간)면 보여 주지 않는다
   if (!lib?.songs?.length) return null

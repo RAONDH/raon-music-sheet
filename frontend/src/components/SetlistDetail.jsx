@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { getPractice, setPractice } from '../api/setlists'
-import { sortSongs, filterSongs, countByKey, filterByKey, KEY_ORDER } from '../utils/songSort'
+import { sortSongs, filterSongs, countByKey, filterByKey, rankBySearch, KEY_ORDER } from '../utils/songSort'
 import FavoriteStar from './FavoriteStar'
 import PrintView from './PrintView'
 import SongFilterBar from './SongFilterBar'
@@ -235,8 +235,8 @@ export default function SetlistDetail({
 
   const pickerSongs = useMemo(() => {
     const list = pickerSort === 'key' ? filterByKey(pickerBase, pickerKey) : pickerBase
-    return sortSongs(list, pickerSort)
-  }, [pickerBase, pickerSort, pickerKey])
+    return rankBySearch(sortSongs(list, pickerSort), pickerSearch)
+  }, [pickerBase, pickerSort, pickerKey, pickerSearch])
 
   function changePickerView(view) {
     setPickerView(view)
