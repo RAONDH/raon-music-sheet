@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from 'react'
 import { loginRequest, signupRequest } from '../api/auth'
 import { apiFetch, AUTH_EXPIRED_EVENT } from '../api/client'
+import { clearOfflineData } from '../utils/offline'
 
 const AuthContext = createContext(null)
 
@@ -49,6 +50,8 @@ export function AuthProvider({ children }) {
   function logout() {
     // 이 기기의 악보 파일 쿠키도 지운다 (로그아웃한 기기에서 악보 주소로 열리지 않게)
     apiFetch('/sheets/session', { method: 'DELETE', skipAuth: true }).catch(() => {})
+    // 이 기기에 오프라인으로 저장해 둔 악보·공유 콘티도 지운다
+    clearOfflineData().catch(() => {})
     persist(null, null)
   }
 

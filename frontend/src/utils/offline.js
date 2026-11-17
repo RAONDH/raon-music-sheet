@@ -110,3 +110,13 @@ export async function saveOffline({ setlistId, plan, signature, dataUrl, pin, wa
 }
 
 export const sheetCacheUrl = (url) => (isSameOrigin(absolute(url)) || /^https:/.test(absolute(url)) ? absolute(url) : '')
+
+// 로그아웃할 때: 이 기기에 저장해 둔 악보와 공유 콘티, 저장 기록을 지운다 (화면 파일은 남겨 둔다)
+// 여러 사람이 같이 쓰는 기기에서 다음 사람이 앞사람의 악보를 보지 못하게 한다
+export async function clearOfflineData() {
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('offlineSave:')).forEach((k) => localStorage.removeItem(k))
+  } catch { /* 기록이 남아도 저장 여부는 다시 확인한다 */ }
+  if (typeof caches === 'undefined') return
+  await Promise.all([SHEET_CACHE, DATA_CACHE].map((name) => caches.delete(name).catch(() => false)))
+}

@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema(
     lastLoginAt: { type: Date, default: null },
     // 관리자가 켜면 이 사람 개인 공간의 곡 정보(악보 빼고)를 가입한 모든 사람이 공용 곡 목록에서 본다
     sharedLibrary: { type: Boolean, default: false },
+    // 관리자가 '곡 복사해 주기'로 이 회원에게 곡을 준 기록 (최근 20번). 회원 관리에서 받은 회원을 표시한다
+    songGifts: {
+      type: [{ _id: false, by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: Date, copied: Number, filled: Number }],
+      default: [],
+    },
     // 임시 비밀번호의 유효 기한 (지나면 그 임시 비밀번호로는 로그인할 수 없다)
     tempPasswordExpiresAt: {
       type: Date,

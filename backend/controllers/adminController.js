@@ -21,7 +21,7 @@ exports.listUsers = async (req, res) => {
   try {
     const q = String(req.query.q || '').trim().slice(0, 100)
     const filter = q ? { email: { $regex: escapeRegex(q), $options: 'i' } } : {}
-    const users = await User.find(filter, 'email createdAt lastLoginAt mustChangePassword tempPasswordExpiresAt suspended')
+    const users = await User.find(filter, 'email createdAt lastLoginAt mustChangePassword tempPasswordExpiresAt suspended songGifts')
       .sort({ createdAt: -1 }).limit(500).lean()
     const ids = users.map((u) => u._id)
 
@@ -54,6 +54,14 @@ exports.listUsers = async (req, res) => {
             .map((t) => ({ _id: t._id, name: t.name, owner: String(t.owner) === id })),
           songs: songs.get(id) || 0,
           setlists: setlists.get(id) || 0,
+          // 곡 복사해 주기로 받은 기록: 받은 횟수·마지막으로 받은 때·받은 곡 수(새로 받은 곡 + 악보를 채운 곡)
+          gifts: (u.songGifts || []).length
+            ? {
+                times: u.songGifts.length,
+                lastAt: u.songGifts[u.songGifts.length - 1].at,
+                songs: u.songGifts.reduce((n, g) => n + (g.copied || 0) + (g.filled || 0), 0),
+              }
+            : null,
         }
       }),
     })
@@ -201,6 +209,11 @@ exports.giveSongs = async (req, res) => {
     }
     if (docs.length) await Song.insertMany(docs)
     if (fills.length) await Song.bulkWrite(fills)
+    if (docs.length || fills.length) {
+      await User.updateOne({ _id: user._id }, {
+        $push: { songGifts: { $each: [{ by: req.user._id, at: new Date(), copied: docs.length, filled: fills.length }], $slice: -20 } },
+      })
+    }
     res.json({ email: user.email, copied: docs.length, filled: fills.length, skipped: source.length - docs.length - fills.length })
   } catch (err) {
     res.status(500).json({ message: err.message })

@@ -589,6 +589,9 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .copyright-status.st-reviewing { background: var(--gold-soft); color: var(--gold-ink); }
 .copyright-status.st-blocked { background: #1f2a24; color: #fff; }
 .copyright-status.st-resolved { background: var(--brand-soft); color: var(--brand); }
+.copyright-status.st-gift { background: #fdf3d8; color: #8a5a00; }
+.member-gift-filter { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; white-space: nowrap; }
+.member-gift-filter input { width: auto; }
 .copyright-detail { margin: 8px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); font-size: 14px; display: flex; flex-direction: column; gap: 10px; }
 .copyright-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
 .copyright-detail dt { color: var(--ink-3); }

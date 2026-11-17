@@ -19,6 +19,7 @@ export default function MemberAdminPage() {
   const [search, setSearch] = useState('')
   const [data, setData] = useState(null)
   const [openId, setOpenId] = useState(null)
+  const [giftedOnly, setGiftedOnly] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -45,7 +46,9 @@ export default function MemberAdminPage() {
     )
   }
 
-  const users = data?.users || []
+  const allUsers = data?.users || []
+  const giftedCount = allUsers.filter((u) => u.gifts).length
+  const users = giftedOnly ? allUsers.filter((u) => u.gifts) : allUsers
   return (
     <div className="dashboard copyright-admin">
       <div className="card panel">
@@ -62,7 +65,16 @@ export default function MemberAdminPage() {
           <button type="submit" className="secondary">찾기</button>
         </form>
         {error && <p className="error-text">{error}</p>}
-        {data && <p className="muted-dark member-count">전체 회원 {data.total}명{search && ` · '${search}' 검색 ${users.length}명`}</p>}
+        {data && (
+          <p className="muted-dark member-count">
+            전체 회원 {data.total}명{search && ` · '${search}' 검색 ${allUsers.length}명`}
+            {giftedCount > 0 && (
+              <label className="member-gift-filter">
+                <input type="checkbox" checked={giftedOnly} onChange={(e) => setGiftedOnly(e.target.checked)} /> 곡 받은 회원만 ({giftedCount}명)
+              </label>
+            )}
+          </p>
+        )}
         {data && users.length === 0 ? <p className="muted">회원이 없습니다</p> : (
           <ul className="copyright-list">
             {users.map((u) => (
@@ -71,6 +83,7 @@ export default function MemberAdminPage() {
                   {u.operator && <span className="copyright-status st-resolved">관리자</span>}
                   {u.suspended && <span className="copyright-status st-blocked">사용 중지</span>}
                   {u.mustChangePassword && <span className="copyright-status st-reviewing">임시 비밀번호</span>}
+                  {u.gifts && <span className="copyright-status st-gift" title={`곡 복사해 줌 · 마지막 ${when(u.gifts.lastAt)}`}>✓ 곡 받음</span>}
                   <b>{u.email}</b>{u.me && <small>(나)</small>}
                   <small>
                     {u.teams.length ? u.teams.map((t) => t.name + (t.owner ? '(팀장)' : '')).join(', ') : '팀 없음'}
@@ -124,6 +137,8 @@ function MemberDetail({ user: u, onChanged }) {
         <dt>마지막 로그인</dt><dd>{u.lastLoginAt ? when(u.lastLoginAt) : '기록 없음 (이 기능을 넣기 전에 로그인함)'}</dd>
         <dt>팀</dt><dd>{u.teams.length ? u.teams.map((t) => `${t.name}${t.owner ? ' (팀장)' : ''}`).join(', ') : '없음'}</dd>
         <dt>만든 곡·콘티</dt><dd>곡 {u.songs}개 · 콘티 {u.setlists}개</dd>
+        <dt>곡 받음</dt>
+        <dd>{u.gifts ? `✓ ${u.gifts.times}번 · ${u.gifts.songs.toLocaleString()}곡 (마지막 ${when(u.gifts.lastAt)})` : '아직 없음'}</dd>
         <dt>상태</dt>
         <dd>
           {u.suspended ? '사용 중지' : '사용 중'}
