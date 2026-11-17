@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { filterSongs, rankBySearch } from '../utils/songSort'
 import './YoutubeLoopPlayer.css'
+
+const PICK_LIMIT = 30
 
 // ── 유튜브 주소에서 영상 id 꺼내기 ──────────────────────
 // youtu.be/ID, watch?v=ID, shorts/ID, embed/ID, live/ID, 영상 id만 붙여넣은 경우 모두 받는다
@@ -69,7 +72,12 @@ const ERROR_TEXT = {
 
 // ── 구간 반복 연습 플레이어 ─────────────────────────────
 export default function YoutubeLoopPlayer({ songs = [] }) {
-  const ytSongs = songs.filter(s => s?.youtubeUrl && parseYouTubeId(s.youtubeUrl))
+  const ytSongs = useMemo(() => songs.filter(s => s?.youtubeUrl && parseYouTubeId(s.youtubeUrl)), [songs])
+  const [songSearch, setSongSearch] = useState('')
+  const songMatches = useMemo(
+    () => (songSearch.trim() ? rankBySearch(filterSongs(ytSongs, songSearch), songSearch) : []),
+    [ytSongs, songSearch]
+  )
 
   const [input, setInput] = useState('')
   const [songId, setSongId] = useState('')
@@ -105,11 +113,10 @@ export default function YoutubeLoopPlayer({ songs = [] }) {
     openVideo(id)
   }
 
-  function handlePickSong(e) {
-    const id = e.target.value
-    setSongId(id)
-    const song = ytSongs.find(s => s._id === id)
+  function handlePickSong(song) {
     if (!song) return
+    setSongId(song._id)
+    setSongSearch('')
     setInput(song.youtubeUrl)
     openVideo(parseYouTubeId(song.youtubeUrl))
   }
@@ -230,17 +237,42 @@ export default function YoutubeLoopPlayer({ songs = [] }) {
       </p>
 
       {ytSongs.length > 0 && (
-        <label className="yt-loop-field">
-          <span>곡 목록에서 고르기</span>
-          <select value={songId} onChange={handlePickSong}>
-            <option value="">— 유튜브 링크가 있는 곡 {ytSongs.length}개 —</option>
-            {ytSongs.map(s => (
-              <option key={s._id} value={s._id}>
-                {s.title}{s.key ? ` (${s.key})` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="yt-loop-field">
+          <label htmlFor="yt-song-search">곡 목록에서 찾기</label>
+          <input
+            id="yt-song-search"
+            type="search"
+            value={songSearch}
+            onChange={e => setSongSearch(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handlePickSong(songMatches[0]) } }}
+            placeholder={`제목·아티스트로 찾기 (유튜브 링크가 있는 곡 ${ytSongs.length.toLocaleString()}개)`}
+            autoComplete="off"
+          />
+          {songSearch.trim() && (
+            songMatches.length === 0 ? (
+              <p className="yt-pick-empty">찾는 곡이 없습니다. 유튜브 링크가 있는 곡만 나옵니다.</p>
+            ) : (
+              <ul className="yt-pick-list">
+                {songMatches.slice(0, PICK_LIMIT).map(s => (
+                  <li key={s._id}>
+                    <button type="button" onClick={() => handlePickSong(s)}>
+                      <b>{s.title}</b>
+                      {s.artist && <span> — {s.artist}</span>}
+                      {s.key && <em>{s.key}</em>}
+                    </button>
+                  </li>
+                ))}
+                {songMatches.length > PICK_LIMIT && (
+                  <li className="yt-pick-more">외 {(songMatches.length - PICK_LIMIT).toLocaleString()}곡 — 더 자세히 입력해 주세요</li>
+                )}
+              </ul>
+            )
+          )}
+          {songId && !songSearch.trim() && (() => {
+            const cur = ytSongs.find(s => s._id === songId)
+            return cur ? <p className="yt-pick-current">지금 곡: <b>{cur.title}</b>{cur.key ? ` (${cur.key})` : ''}</p> : null
+          })()}
+        </div>
       )}
 
       <form className="yt-loop-url" onSubmit={handleSubmit}>
