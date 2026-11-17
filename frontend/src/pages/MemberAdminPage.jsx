@@ -9,6 +9,8 @@ import { getSongs } from '../api/songs'
 import { filterSongs } from '../utils/songSort'
 import { effectiveSheets } from '../utils/sheets'
 
+// 곡을 받은 회원: '곡 복사해 주기' 기록이 있거나, 개인 곡에 내 악보가 연결돼 있으면
+const received = (u) => !!u.gifts || u.linkedSheets > 0
 const when = (d) => (d ? new Date(d).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '')
 
 // 관리자(ADMIN_EMAILS)용 회원 관리 화면: 가입한 회원 보기, 비밀번호 초기화, 사용 중지
@@ -47,8 +49,8 @@ export default function MemberAdminPage() {
   }
 
   const allUsers = data?.users || []
-  const giftedCount = allUsers.filter((u) => u.gifts).length
-  const users = giftedOnly ? allUsers.filter((u) => u.gifts) : allUsers
+  const giftedCount = allUsers.filter(received).length
+  const users = giftedOnly ? allUsers.filter(received) : allUsers
   return (
     <div className="dashboard copyright-admin">
       <div className="card panel">
@@ -83,7 +85,7 @@ export default function MemberAdminPage() {
                   {u.operator && <span className="copyright-status st-resolved">관리자</span>}
                   {u.suspended && <span className="copyright-status st-blocked">사용 중지</span>}
                   {u.mustChangePassword && <span className="copyright-status st-reviewing">임시 비밀번호</span>}
-                  {u.gifts && <span className="copyright-status st-gift" title={`곡 복사해 줌 · 마지막 ${when(u.gifts.lastAt)}`}>✓ 곡 받음</span>}
+                  {received(u) && <span className="copyright-status st-gift">✓ 곡 받음</span>}
                   <b>{u.email}</b>{u.me && <small>(나)</small>}
                   <small>
                     {u.teams.length ? u.teams.map((t) => t.name + (t.owner ? '(팀장)' : '')).join(', ') : '팀 없음'}
@@ -138,7 +140,12 @@ function MemberDetail({ user: u, onChanged }) {
         <dt>팀</dt><dd>{u.teams.length ? u.teams.map((t) => `${t.name}${t.owner ? ' (팀장)' : ''}`).join(', ') : '없음'}</dd>
         <dt>만든 곡·콘티</dt><dd>곡 {u.songs}개 · 콘티 {u.setlists}개</dd>
         <dt>곡 받음</dt>
-        <dd>{u.gifts ? `✓ ${u.gifts.times}번 · ${u.gifts.songs.toLocaleString()}곡 (마지막 ${when(u.gifts.lastAt)})` : '아직 없음'}</dd>
+        <dd>
+          {received(u) ? '✓ ' : '아직 없음'}
+          {u.gifts && `복사해 준 기록 ${u.gifts.times}번 (마지막 ${when(u.gifts.lastAt)})`}
+          {u.gifts && u.linkedSheets > 0 && ' · '}
+          {u.linkedSheets > 0 && `내 악보가 연결된 곡 ${u.linkedSheets.toLocaleString()}곡`}
+        </dd>
         <dt>상태</dt>
         <dd>
           {u.suspended ? '사용 중지' : '사용 중'}
@@ -210,7 +217,9 @@ function GiveSongs({ user: u, onDone }) {
     setMsg('')
     try {
       const r = await giveSongs(u._id, from, picked.map((s) => s._id))
-      const parts = [`${r.copied.toLocaleString()}곡을 복사해 주었습니다`]
+      const parts = r.copied || r.filled
+        ? [`${r.copied.toLocaleString()}곡을 복사해 주었습니다`]
+        : ['이미 같은 곡을 모두 가지고 있어 새로 들어간 곡은 없습니다(같은 제목·아티스트). 준 기록은 남겼습니다']
       if (r.filled) parts.push(`이미 있던 ${r.filled}곡에 악보를 넣었습니다`)
       if (r.skipped) parts.push(`이미 있는 ${r.skipped}곡은 건너뜀`)
       setMsg(parts.join(' · ') + '.')

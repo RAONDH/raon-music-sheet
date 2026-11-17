@@ -25,11 +25,12 @@ exports.listUsers = async (req, res) => {
       .sort({ createdAt: -1 }).limit(500).lean()
     const ids = users.map((u) => u._id)
 
-    const [teams, songCounts, setlistCounts, total] = await Promise.all([
+    const [teams, songCounts, setlistCounts, total, linkedCounts] = await Promise.all([
       Team.find({ $or: [{ members: { $in: ids } }, { owner: { $in: ids } }] }, 'name owner members').lean(),
       Song.aggregate([{ $match: { user: { $in: ids } } }, { $group: { _id: '$user', n: { $sum: 1 } } }]),
       Setlist.aggregate([{ $match: { user: { $in: ids } } }, { $group: { _id: '$user', n: { $sum: 1 } } }]),
       User.countDocuments(),
+      linkedSheetCounts(req.user, ids),
     ])
     const countMap = (rows) => new Map(rows.map((r) => [String(r._id), r.n]))
     const songs = countMap(songCounts)
@@ -62,12 +63,38 @@ exports.listUsers = async (req, res) => {
                 songs: u.songGifts.reduce((n, g) => n + (g.copied || 0) + (g.filled || 0), 0),
               }
             : null,
+          // 개인 공간 곡 중 내(관리자) 악보를 쓰는 곡 수 — 기록이 없던 때 복사해 준 회원도 알아볼 수 있다
+          linkedSheets: id === String(req.user._id) ? 0 : (linkedCounts.get(id) || 0),
         }
       }),
     })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
+}
+
+// 회원별로, 개인 공간 곡 가운데 관리자(나)의 곡과 같은 악보 주소를 쓰는 곡 수 → Map(userId → 수)
+// 내 개인 공간과 내 팀의 곡에 들어 있는 악보 주소를 모아, 다른 회원의 개인 곡에서 찾는다
+async function linkedSheetCounts(me, ids) {
+  const teams = await Team.find({ members: me._id }, '_id').lean()
+  const mine = await Song.find(
+    { $or: [{ user: me._id, team: null }, { team: { $in: teams.map((t) => t._id) } }] },
+    'sheetImageUrl sheetPdfUrl sheets.pages.url',
+  ).lean()
+  const urls = new Set()
+  for (const s of mine) {
+    if (s.sheetImageUrl) urls.add(s.sheetImageUrl)
+    if (s.sheetPdfUrl) urls.add(s.sheetPdfUrl)
+    for (const sh of s.sheets || []) for (const p of sh.pages || []) if (p.url) urls.add(p.url)
+  }
+  if (!urls.size) return new Map()
+  const list = [...urls]
+  const rows = await Song.aggregate([
+    { $match: { user: { $in: ids.filter((id) => String(id) !== String(me._id)) }, team: null,
+      $or: [{ sheetImageUrl: { $in: list } }, { sheetPdfUrl: { $in: list } }, { 'sheets.pages.url': { $in: list } }] } },
+    { $group: { _id: '$user', n: { $sum: 1 } } },
+  ])
+  return new Map(rows.map((r) => [String(r._id), r.n]))
 }
 
 // 다른 회원만, 그리고 다른 관리자 계정은 건드리지 않는다
@@ -209,9 +236,10 @@ exports.giveSongs = async (req, res) => {
     }
     if (docs.length) await Song.insertMany(docs)
     if (fills.length) await Song.bulkWrite(fills)
-    if (docs.length || fills.length) {
+    // 이미 다 가지고 있어서 건너뛴 경우도 '준 것'으로 기록한다 (그 곡을 받은 회원이 맞으므로)
+    if (source.length) {
       await User.updateOne({ _id: user._id }, {
-        $push: { songGifts: { $each: [{ by: req.user._id, at: new Date(), copied: docs.length, filled: fills.length }], $slice: -20 } },
+        $push: { songGifts: { $each: [{ by: req.user._id, at: new Date(), copied: docs.length, filled: fills.length, skipped: source.length - docs.length - fills.length }], $slice: -20 } },
       })
     }
     res.json({ email: user.email, copied: docs.length, filled: fills.length, skipped: source.length - docs.length - fills.length })
