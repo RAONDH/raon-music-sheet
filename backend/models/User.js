@@ -35,6 +35,9 @@ const userSchema = new mongoose.Schema(
     lastLoginAt: { type: Date, default: null },
     // 관리자가 켜면 이 사람 개인 공간의 곡 정보(악보 빼고)를 가입한 모든 사람이 공용 곡 목록에서 본다
     sharedLibrary: { type: Boolean, default: false },
+    // 비밀번호 찾기: 메일로 보낸 재설정 링크의 토큰(해시만 저장)과 만료 시각. 한 번 쓰면 지운다
+    resetTokenHash: { type: String, default: null },
+    resetTokenExpiresAt: { type: Date, default: null },
     // 관리자가 '곡 복사해 주기'로 이 회원에게 곡을 준 기록 (최근 20번). 회원 관리에서 받은 회원을 표시한다
     songGifts: {
       type: [{ _id: false, by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: Date, copied: Number, filled: Number, skipped: Number }],

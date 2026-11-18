@@ -26,3 +26,17 @@ export function checkEmailRequest(email) {
     body: JSON.stringify({ email }),
   })
 }
+export function forgotPasswordRequest(email) {
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    skipAuth: true,
+    body: JSON.stringify({ email }),
+  })
+}
+export function resetPasswordRequest(token, password) {
+  return apiFetch('/auth/reset-password', {
+    method: 'POST',
+    skipAuth: true,
+    body: JSON.stringify({ token, password }),
+  })
+}

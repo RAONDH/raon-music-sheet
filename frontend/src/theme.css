@@ -694,3 +694,6 @@ input::placeholder, textarea::placeholder { color: var(--ink-3); }
 .give-songs-tools label { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
 .give-songs-tools input[type="search"] { flex: 1 1 220px; min-width: 0; }
 .give-songs-check input { width: auto; }
+
+/* 비밀번호 재설정 화면: 버튼처럼 보이는 링크 */
+.button-link { display: block; text-align: center; padding: 12px 16px; border-radius: 10px; background: var(--brand); color: #fff; font-weight: 700; text-decoration: none; }
