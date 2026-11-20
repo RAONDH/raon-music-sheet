@@ -69,6 +69,8 @@ const setlistSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // 실시간 진행: 지금 곡 안에서 몇 번째 쪽인지 (곡을 넘기면 0부터)
+    currentPageIdx: { type: Number, default: 0 },
     // 실시간 진행: 지금 곡을 넘기는 사람(진행자)과 마지막 신호. liveSeq는 곡을 넘길 때마다 1씩 오른다
     presenter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     presenterSeenAt: { type: Date, default: null },

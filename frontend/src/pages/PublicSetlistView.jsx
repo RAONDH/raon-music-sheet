@@ -16,6 +16,8 @@ import LoginForm from '../components/LoginForm'
 import { useAuth } from '../context/useAuth'
 
 const POLL_MS = 3000
+// 인도자가 진행하는 동안 따라가는 화면은 더 자주 확인한다 (넘긴 뒤 1초 안팎에 따라오게)
+const LIVE_POLL_MS = 1000
 
 function getYoutubeEmbedId(url) {
   if (!url) return null
@@ -102,7 +104,7 @@ export default function PublicSetlistView() {
   const [conn, setConn] = useState('ok') // ok | lost
   const [notice, setNotice] = useState('')
   const modeRef = useRef('follow')
-  const liveRef = useRef({ seq: -1, presenterSeq: null, lost: false, index: null })
+  const liveRef = useRef({ seq: -1, presenterSeq: null, lost: false, index: null, page: null, fast: false })
   const noticeTimer = useRef(null)
   const setlistRef = useRef(null)
 
@@ -169,14 +171,19 @@ export default function PublicSetlistView() {
         }
         // 인도자를 따라가는 중이면 진행자의 곡으로 (진행자 본인은 자기가 넘긴 곳 그대로)
         const total = setlistRef.current?.songs?.length || 0
+        // 곡뿐 아니라 곡 안의 쪽도 따라간다. 인도자가 넘겼을 때만 맞추므로, 그 사이 내가 쪽을 넘겨 보는 것은 그대로 둔다
         if (modeRef.current === 'follow' && !data.isPresenter && data.hasPresenter && total) {
           const idx = Math.min(Math.max(0, data.index), total - 1)
-          if (idx !== prev.index || prev.lost) {
+          const pg = Math.max(0, data.page || 0)
+          if (idx !== prev.index || pg !== prev.page || prev.lost) {
             setCurrentIdx(idx)
-            setPageIdx(0)
+            setPageIdx(pg)
           }
         }
-        liveRef.current = { seq: data.seq, presenterSeq: data.presenterSeq, lost: false, index: data.index }
+        liveRef.current = {
+          seq: data.seq, presenterSeq: data.presenterSeq, lost: false, index: data.index, page: data.page || 0,
+          fast: !!data.presenterActive && !data.isPresenter,
+        }
         setLive(data)
         setConn('ok')
         // 콘티 내용이 바뀌었으면 새로 받는다
@@ -189,8 +196,15 @@ export default function PublicSetlistView() {
         setConn('lost')
       }
     }
-    poll()
-    const timer = setInterval(poll, POLL_MS)
+    // 인도자가 진행 중이고 이 화면을 보고 있으면 1초마다, 아니면 3초마다
+    let timer = null
+    const loop = async () => {
+      await poll()
+      if (!alive) return
+      const fast = liveRef.current.fast && modeRef.current === 'follow' && !document.hidden
+      timer = setTimeout(loop, fast ? LIVE_POLL_MS : POLL_MS)
+    }
+    loop()
     const onVisible = () => { if (!document.hidden) poll() }
     const onOffline = () => { liveRef.current = { ...liveRef.current, lost: true }; setConn('lost') }
     window.addEventListener('online', poll)
@@ -198,7 +212,7 @@ export default function PublicSetlistView() {
     document.addEventListener('visibilitychange', onVisible)
     return () => {
       alive = false
-      clearInterval(timer)
+      clearTimeout(timer)
       window.removeEventListener('online', poll)
       window.removeEventListener('offline', onOffline)
       document.removeEventListener('visibilitychange', onVisible)
@@ -208,16 +222,16 @@ export default function PublicSetlistView() {
   const presenting = !!live?.isPresenter && !!live?.presenterActive
 
   // 진행자로서 곡을 넘긴다. 실패하면 이유를 알려 주고 따라가기·혼자 보기로 돌아간다
-  async function pushLive(idx, takeover = false) {
+  async function pushLive(idx, takeover = false, pg = 0) {
     try {
-      const data = await setPublicCurrentSong(token, idx, { takeover })
-      liveRef.current = { seq: data.seq, presenterSeq: data.presenterSeq, lost: false, index: data.index }
+      const data = await setPublicCurrentSong(token, idx, { takeover, page: pg })
+      liveRef.current = { seq: data.seq, presenterSeq: data.presenterSeq, lost: false, index: data.index, page: data.page || 0, fast: false }
       setLive(data)
       return true
     } catch (err) {
       if (err.status === 409 && err.data?.busy) {
         if (window.confirm(`${err.data.presenterName || '다른 인도자'} 님이 진행 중입니다.\n진행을 넘겨받을까요? 넘겨받으면 ‘인도자 따라가기’ 화면이 모두 내 진행을 따라옵니다.`)) {
-          return pushLive(idx, true)
+          return pushLive(idx, true, pg)
         }
         changeMode('follow')
       } else {
@@ -228,7 +242,7 @@ export default function PublicSetlistView() {
   }
 
   async function startPresenting() {
-    if (await pushLive(currentIdx)) {
+    if (await pushLive(currentIdx, false, pageIdx)) {
       changeMode('follow')
       flash('진행을 시작했습니다 · 이제 넘기면 모두의 화면이 따라옵니다')
     }
@@ -247,7 +261,7 @@ export default function PublicSetlistView() {
     changeMode('follow')
     if (live?.hasPresenter && setlist?.songs?.length) {
       setCurrentIdx(Math.min(Math.max(0, live.index), setlist.songs.length - 1))
-      setPageIdx(0)
+      setPageIdx(Math.max(0, live.page || 0))
     }
   }
 
@@ -271,12 +285,18 @@ export default function PublicSetlistView() {
   const views = useSheetViews(sheetOf(song))
   const page = Math.min(pageIdx, Math.max(0, views.length - 1))
 
+  // 쪽 넘기기. 진행자면 모두의 화면도 그 쪽으로 넘어간다
+  function changePage(p) {
+    setPageIdx(p)
+    if (presenting) pushLive(currentIdx, false, p)
+  }
+
   // 넘기기(스와이프·좌우 누르기): 곡 안에 남은 쪽이 있으면 쪽을, 마지막 쪽이면 다음 곡으로
   function step(dir) {
     // PDF를 여는 중에는 쪽 수를 아직 모르므로 곡을 건너뛰지 않는다
     if (views[page]?.loading) { flash('PDF 악보를 여는 중입니다'); return }
     const nextPage = page + dir
-    if (nextPage >= 0 && nextPage < views.length) { setPageIdx(nextPage); return }
+    if (nextPage >= 0 && nextPage < views.length) { changePage(nextPage); return }
     const nextSong = currentIdx + dir
     if (nextSong < 0 || nextSong >= songs.length) return
     handleSelectSong(nextSong)
@@ -540,7 +560,7 @@ export default function PublicSetlistView() {
             reserveBottom={focus ? 20 : views.length > 1 ? 76 : 28} />
 
           <div className="sheet-bottom">
-            <PageNav index={page} total={views.length} onChange={setPageIdx} dark />
+            <PageNav index={page} total={views.length} onChange={changePage} dark />
           </div>
 
           {/* 좌우 누르기: 쪽 → 곡 순서로 넘김 */}
@@ -620,7 +640,7 @@ export default function PublicSetlistView() {
                 song={song}
                 views={views}
                 page={page}
-                onPage={setPageIdx}
+                onPage={changePage}
                 shareToken={token}
                 pin={pin}
                 currentIdx={currentIdx}

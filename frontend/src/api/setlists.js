@@ -50,10 +50,10 @@ export function getPublicCurrentSong(token) {
 }
 
 // 진행자만 성공한다 (공유 링크만으로는 403)
-export function setPublicCurrentSong(token, index, { takeover = false } = {}) {
+export function setPublicCurrentSong(token, index, { takeover = false, page = 0 } = {}) {
   return apiFetch(`/setlists/public/${token}/current`, {
     method: 'PUT',
-    body: JSON.stringify({ index, takeover }),
+    body: JSON.stringify({ index, page, takeover }),
   })
 }
 

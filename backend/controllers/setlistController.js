@@ -370,6 +370,7 @@ async function liveView(setlist, user, { member = false } = {}) {
   }
   return {
     index: setlist.currentSongIdx || 0,
+    page: setlist.currentPageIdx || 0,
     seq: setlist.liveSeq || 0,
     presenterSeq: setlist.presenterSeq || 0,
     hasPresenter: !!setlist.presenter,
@@ -384,13 +385,18 @@ async function liveView(setlist, user, { member = false } = {}) {
   }
 }
 
-const LIVE_FIELDS = 'songs currentSongIdx liveSeq presenter presenterSeenAt presenterSeq team user revision sharePinHash shareToken'
+const LIVE_FIELDS = 'songs currentSongIdx currentPageIdx liveSeq presenter presenterSeenAt presenterSeq team user revision sharePinHash shareToken'
 
 // 진행자로서 곡 위치를 바꾼다 (권한 검사는 부르는 쪽에서)
 async function moveLive(req, res, setlist, user) {
   const { index, takeover } = req.body || {}
   if (!Number.isInteger(index) || index < 0 || index >= setlist.songs.length) {
     return res.status(400).json({ message: '곡 위치가 올바르지 않습니다' })
+  }
+  // 곡 안의 쪽 (없으면 첫 쪽). 악보 쪽 수는 화면에서만 알므로 넉넉한 범위만 확인한다
+  const page = req.body?.page === undefined ? 0 : req.body.page
+  if (!Number.isInteger(page) || page < 0 || page > 500) {
+    return res.status(400).json({ message: '쪽 위치가 올바르지 않습니다' })
   }
   const busy = setlist.presenter && !sameId(setlist.presenter, user._id) &&
     setlist.presenterSeenAt && Date.now() - setlist.presenterSeenAt < PRESENTER_ACTIVE_MS
@@ -405,7 +411,7 @@ async function moveLive(req, res, setlist, user) {
   const changed = !sameId(setlist.presenter, user._id)
   const updated = await Setlist.findOneAndUpdate(
     { _id: setlist._id },
-    { $set: { currentSongIdx: index, presenter: user._id, presenterSeenAt: new Date() }, $inc: { liveSeq: 1, presenterSeq: changed ? 1 : 0 } },
+    { $set: { currentSongIdx: index, currentPageIdx: page, presenter: user._id, presenterSeenAt: new Date() }, $inc: { liveSeq: 1, presenterSeq: changed ? 1 : 0 } },
     { new: true, projection: LIVE_FIELDS }
   )
   res.json(await liveView(updated, user, { member: true }))
