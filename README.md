@@ -3,7 +3,7 @@
 라온동행교회 찬양팀 악보 & 콘티 관리 앱
 
 **앱 주소**: https://raon-music-sheet.vercel.app  
-**사용법 가이드**: https://raon-easypaster.github.io/raon-music-sheet/
+**사용법 가이드**: https://raondh.github.io/raon-music-sheet/
 
 ---
 
